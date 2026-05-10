@@ -1,17 +1,42 @@
-export default function FiltroBarraComponent() {
+import { useState } from 'react'
+import type { FiltroMapaDTO } from '../types'
+import { salaService } from '../services/salaService'
+
+interface Props {
+  onFiltroChange: (filtro: FiltroMapaDTO) => void
+}
+
+export default function FiltroBarraComponent({ onFiltroChange }: Props) {
+  const blocos = salaService.blocos()
+  const [bloco, setBloco] = useState('')
+  const [dataFoco, setDataFoco] = useState(new Date().toISOString().split('T')[0])
+
+  const aplicar = () => onFiltroChange({ bloco: bloco || undefined, dataFoco })
+  const limpar = () => {
+    setBloco('')
+    setDataFoco(new Date().toISOString().split('T')[0])
+    onFiltroChange({})
+  }
+
   return (
-    <div style={{ background: '#f5f5f5', padding: 16, borderRadius: 4, marginBottom: 16 }}>
-      <strong>[FiltroBarraComponent]</strong>
-      <p style={{ fontSize: 12, color: '#666' }}>
-        TODO: inputs for bloco, dataFoco (date), idProjeto → emits FiltroMapaDTO to parent
-      </p>
-      {/* TODO: props: onFiltroChange: (filtro: FiltroMapaDTO) => void */}
-      {/* TODO: inputs: bloco (string), dataFoco (date picker), idProjeto (select from ProjetoApiService) */}
-      <div style={{ display: 'flex', gap: 8 }}>
-        <input placeholder="Bloco (ex: CB)" style={{ padding: 6 }} />
-        <input type="date" style={{ padding: 6 }} />
-        <button style={{ padding: '6px 12px' }}>Filtrar</button>
-      </div>
+    <div style={{ background: '#f5f5f5', padding: 12, borderRadius: 6, marginBottom: 16, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+      <label style={{ fontSize: 13 }}>
+        Bloco<br />
+        <select value={bloco} onChange={e => setBloco(e.target.value)} style={{ padding: '6px 8px', minWidth: 120 }}>
+          <option value="">Todos</option>
+          {blocos.map(b => <option key={b} value={b}>{b}</option>)}
+        </select>
+      </label>
+      <label style={{ fontSize: 13 }}>
+        Data<br />
+        <input type="date" value={dataFoco} onChange={e => setDataFoco(e.target.value)} style={{ padding: '6px 8px' }} />
+      </label>
+      <button onClick={aplicar} style={{ padding: '6px 16px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+        Filtrar
+      </button>
+      <button onClick={limpar} style={{ padding: '6px 12px', cursor: 'pointer' }}>
+        Limpar
+      </button>
     </div>
   )
 }
