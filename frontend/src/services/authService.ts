@@ -21,7 +21,7 @@ export function login(email: string, senha: string): LoginResult {
   if (!cred || cred.senha !== senha) {
     return { ok: false, erro: 'E-mail ou senha incorretos.' }
   }
-  const usuario = db.usuarios.all().find(u => u.email === email.toLowerCase())
+  const usuario = db.usuarios.all().find(u => u.email.toLowerCase() === email.toLowerCase())
   if (!usuario || !usuario.ativo) {
     return { ok: false, erro: 'Usuário inativo ou não encontrado.' }
   }

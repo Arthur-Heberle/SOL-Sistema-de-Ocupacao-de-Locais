@@ -26,5 +26,6 @@ export const salaService = {
   },
   excluir: (id: number): void => {
     db.salas.save(db.salas.all().filter(s => s.id !== id))
+    db.reservas.save(db.reservas.all().filter(r => r.idSala !== id))
   },
 }

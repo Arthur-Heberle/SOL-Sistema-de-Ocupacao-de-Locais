@@ -15,8 +15,13 @@ export const reservaService = {
     const reservas = db.reservas.all()
     const sala = salaService.buscarPorId(dados.idSala)
     if (sala && !sala.permiteReserva) throw new Error(`Sala ${sala.codigoNome} não permite reservas.`)
+    const hasConflict = reservas
+      .filter(r => r.idSala === dados.idSala && r.status === 'APROVADA')
+      .some(r => dados.dataInicio < r.dataFim && dados.dataFim > r.dataInicio)
     const status: StatusReserva =
-      sala?.tipoSala === 'PROJETO' ? 'PENDENTE' : 'APROVADA'
+      sala?.tipoSala === 'PROJETO' ? 'PENDENTE'
+      : hasConflict ? 'PENDENTE'
+      : 'APROVADA'
     const nova: ReservaDTO = { ...dados, id: db.nextId(reservas), status }
     db.reservas.save([...reservas, nova])
     return nova
