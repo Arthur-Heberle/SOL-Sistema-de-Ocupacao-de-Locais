@@ -88,4 +88,5 @@ export interface MembroProjetoDTO {
   nomeUsuario: string
   emailUsuario: string
   isGestor: boolean
+  dataIngresso?: string
 }

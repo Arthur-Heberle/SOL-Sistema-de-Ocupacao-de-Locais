@@ -14,6 +14,7 @@ export const reservaService = {
   criar: (dados: Omit<ReservaDTO, 'id' | 'status'>): ReservaDTO => {
     const reservas = db.reservas.all()
     const sala = salaService.buscarPorId(dados.idSala)
+    if (sala && !sala.permiteReserva) throw new Error(`Sala ${sala.codigoNome} não permite reservas.`)
     const status: StatusReserva =
       sala?.tipoSala === 'PROJETO' ? 'PENDENTE' : 'APROVADA'
     const nova: ReservaDTO = { ...dados, id: db.nextId(reservas), status }
