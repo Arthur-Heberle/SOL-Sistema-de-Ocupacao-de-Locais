@@ -31,6 +31,14 @@ export default function AppRoutes() {
         }
       />
       <Route
+        path="/projetos"
+        element={
+          <ProtectedRoute minRole="PROFESSOR">
+            <Layout><ProjetoPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/projetos/:id"
         element={
           <ProtectedRoute minRole="TUTOR">

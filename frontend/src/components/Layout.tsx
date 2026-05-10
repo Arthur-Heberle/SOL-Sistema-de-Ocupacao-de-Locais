@@ -18,6 +18,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {tipoUsuario && ['PROFESSOR', 'GESTOR'].includes(tipoUsuario) && (
           <Link to="/dashboard" style={{ color: '#fff' }}>Dashboard</Link>
         )}
+        {tipoUsuario && ['PROFESSOR', 'GESTOR'].includes(tipoUsuario) && (
+          <Link to="/projetos" style={{ color: '#fff' }}>Projetos</Link>
+        )}
         {tipoUsuario === 'GESTOR' && (
           <>
             <Link to="/admin/usuarios" style={{ color: '#fff' }}>Usuários</Link>
