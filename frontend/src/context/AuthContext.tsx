@@ -14,24 +14,34 @@ interface AuthContextValue extends AuthState {
   isAuthenticated: boolean
 }
 
+const AUTH_KEY = 'sol.auth'
+
+function loadAuth(): AuthState {
+  try {
+    const raw = localStorage.getItem(AUTH_KEY)
+    if (raw) return JSON.parse(raw) as AuthState
+  } catch { /* ignore */ }
+  return { token: null, nome: null, tipoUsuario: null }
+}
+
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [auth, setAuth] = useState<AuthState>({
-    token: null,
-    nome: null,
-    tipoUsuario: null,
-  })
+  const [auth, setAuth] = useState<AuthState>(loadAuth)
 
-  const login = (token: string, nome: string, tipoUsuario: TipoUsuario) =>
-    setAuth({ token, nome, tipoUsuario })
+  const login = (token: string, nome: string, tipoUsuario: TipoUsuario) => {
+    const state = { token, nome, tipoUsuario }
+    localStorage.setItem(AUTH_KEY, JSON.stringify(state))
+    setAuth(state)
+  }
 
-  const logout = () => setAuth({ token: null, nome: null, tipoUsuario: null })
+  const logout = () => {
+    localStorage.removeItem(AUTH_KEY)
+    setAuth({ token: null, nome: null, tipoUsuario: null })
+  }
 
   return (
-    <AuthContext.Provider
-      value={{ ...auth, login, logout, isAuthenticated: !!auth.token }}
-    >
+    <AuthContext.Provider value={{ ...auth, login, logout, isAuthenticated: !!auth.token }}>
       {children}
     </AuthContext.Provider>
   )
