@@ -22,7 +22,17 @@ export default function MapaComponent({ filtro }: Props) {
 
   useEffect(recarregar, [filtro.bloco])
 
-  const ocupada = (sala: SalaDTO) => reservas.some(r => r.idSala === sala.id)
+  const ocupada = (sala: SalaDTO): boolean => {
+    const dataRef = filtro.dataFoco
+    return reservas.some(r => {
+      if (r.idSala !== sala.id) return false
+      if (!dataRef) return true
+      if (r.recorrente) {
+        return new Date(r.dataInicio).getDay() === new Date(dataRef + 'T12:00').getDay()
+      }
+      return r.dataInicio.startsWith(dataRef)
+    })
+  }
 
   const corSala = (sala: SalaDTO): string => {
     if (!sala.permiteReserva) return '#e0e0e0'

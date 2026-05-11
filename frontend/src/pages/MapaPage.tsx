@@ -35,7 +35,7 @@ export default function MapaPage() {
         {tab === 'mapa' ? (
           <MapaComponent filtro={filtro} />
         ) : (
-          <CalendarioComponent reservas={reservas} salas={salas} />
+          <CalendarioComponent reservas={reservas} salas={salas} dataFoco={filtro.dataFoco} />
         )}
       </div>
     </main>

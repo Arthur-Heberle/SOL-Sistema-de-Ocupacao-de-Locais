@@ -22,4 +22,9 @@ export const projetoService = {
   removerMembro: (id: number): void => {
     db.membros.save(db.membros.all().filter(m => m.id !== id))
   },
+  aprovar: (id: number): void => {
+    const projetos = db.projetos.all()
+    const idx = projetos.findIndex(p => p.id === id)
+    if (idx !== -1) { projetos[idx].aprovado = true; db.projetos.save(projetos) }
+  },
 }
