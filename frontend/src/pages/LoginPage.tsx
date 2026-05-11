@@ -28,7 +28,7 @@ export default function LoginPage() {
       GESTOR: 'gestor@utfpr.edu.br',
       PROFESSOR: 'ana@utfpr.edu.br',
       TUTOR: 'carlos@utfpr.edu.br',
-      ALUNO: 'maria@utfpr.edu.br',
+      ALUNO: 'joao@utfpr.edu.br',
     }
     const resultado = mockLogin(emails[role], '123456')
     if (resultado.ok) {
@@ -38,7 +38,7 @@ export default function LoginPage() {
   }
 
   const simularMembro = () => {
-    // Maria Aluna — tipo ALUNO, mas integrante do PET Computação
+    // Maria Aluna — tipo ALUNO, integrante do PET Computação (acesso diferenciado)
     const resultado = mockLogin('maria@utfpr.edu.br', '123456')
     if (resultado.ok) {
       login(resultado.token!, resultado.nome!, resultado.tipoUsuario!, resultado.idUsuario!)
@@ -81,7 +81,7 @@ export default function LoginPage() {
         </button>
       </div>
       <p style={{ fontSize: 10, color: '#bbb', marginTop: 8 }}>
-        Senha padrão: 123456 · ALUNO-MEMBRO = Maria, integrante do PET Computação (acesso ao projeto sem ser TUTOR)
+        Senha padrão: 123456 · ALUNO = João (sem projetos) · ALUNO-MEMBRO = Maria (integrante do PET Computação)
       </p>
     </main>
   )

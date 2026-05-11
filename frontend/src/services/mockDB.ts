@@ -8,6 +8,7 @@ const SEED_USUARIOS: UsuarioDTO[] = [
   { id: 2, nome: 'Prof. Ana Silva', email: 'ana@utfpr.edu.br', tipoUsuario: 'PROFESSOR', ativo: true },
   { id: 3, nome: 'Carlos Tutor', email: 'carlos@utfpr.edu.br', tipoUsuario: 'TUTOR', ativo: true },
   { id: 4, nome: 'Maria Aluna', email: 'maria@utfpr.edu.br', tipoUsuario: 'ALUNO', ativo: true },
+  { id: 5, nome: 'João Aluno', email: 'joao@utfpr.edu.br', tipoUsuario: 'ALUNO', ativo: true },
 ]
 
 const SEED_SALAS: SalaDTO[] = [
@@ -33,7 +34,7 @@ const SEED_RESERVAS: ReservaDTO[] = [
   {
     id: 3, idSala: 3, idUsuario: 3, titulo: 'Sprint do Projeto',
     visibilidade: 'PRIVADA', dataInicio: '2026-05-22T13:00:00',
-    dataFim: '2026-05-22T15:00:00', recorrente: false, status: 'PENDENTE',
+    dataFim: '2026-05-22T15:00:00', recorrente: false, status: 'APROVADA',
   },
 ]
 
@@ -56,8 +57,21 @@ const SEED_DISPONIBILIDADES: { idUsuario: number; idProjeto: number; horarios: H
   {
     idUsuario: 3, idProjeto: 1,
     horarios: [
-      { diaSemana: 'SEGUNDA', horaInicio: '14:00', horaFim: '16:00' },
-      { diaSemana: 'QUARTA', horaInicio: '08:00', horaFim: '10:00' },
+      { diaSemana: 'SEGUNDA', horaInicio: '14:00', horaFim: '15:00' },
+      { diaSemana: 'SEGUNDA', horaInicio: '15:00', horaFim: '16:00' },
+      { diaSemana: 'QUARTA', horaInicio: '08:00', horaFim: '09:00' },
+      { diaSemana: 'QUARTA', horaInicio: '09:00', horaFim: '10:00' },
+      { diaSemana: 'QUINTA', horaInicio: '14:00', horaFim: '15:00' },
+    ],
+  },
+  {
+    idUsuario: 4, idProjeto: 1,
+    horarios: [
+      { diaSemana: 'SEGUNDA', horaInicio: '14:00', horaFim: '15:00' },
+      { diaSemana: 'SEGUNDA', horaInicio: '15:00', horaFim: '16:00' },
+      { diaSemana: 'TERCA', horaInicio: '10:00', horaFim: '11:00' },
+      { diaSemana: 'QUARTA', horaInicio: '09:00', horaFim: '10:00' },
+      { diaSemana: 'SEXTA', horaInicio: '08:00', horaFim: '09:00' },
     ],
   },
 ]

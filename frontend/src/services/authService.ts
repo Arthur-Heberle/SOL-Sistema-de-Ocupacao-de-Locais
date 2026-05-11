@@ -6,6 +6,7 @@ const CREDENTIALS: Record<string, { senha: string; tipoUsuario: TipoUsuario }> =
   'ana@utfpr.edu.br':      { senha: '123456', tipoUsuario: 'PROFESSOR' },
   'carlos@utfpr.edu.br':   { senha: '123456', tipoUsuario: 'TUTOR' },
   'maria@utfpr.edu.br':    { senha: '123456', tipoUsuario: 'ALUNO' },
+  'joao@utfpr.edu.br':     { senha: '123456', tipoUsuario: 'ALUNO' },
 }
 
 export interface LoginResult {

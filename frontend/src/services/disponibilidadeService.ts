@@ -17,14 +17,8 @@ export const disponibilidadeService = {
       .find(d => d.idUsuario === idUsuario && d.idProjeto === idProjeto)
     return entry?.horarios ?? []
   },
-  interseccao: (idProjeto: number): HorarioDTO[] => {
-    const all = db.disponibilidades.all().filter(d => d.idProjeto === idProjeto)
-    if (all.length === 0) return []
-    const first = all[0].horarios
-    return first.filter(slot =>
-      all.every(d =>
-        d.horarios.some(h => h.diaSemana === slot.diaSemana && h.horaInicio === slot.horaInicio)
-      )
-    )
-  },
+  todos: (idProjeto: number): { idUsuario: number; horarios: HorarioDTO[] }[] =>
+    db.disponibilidades.all()
+      .filter(d => d.idProjeto === idProjeto)
+      .map(d => ({ idUsuario: d.idUsuario, horarios: d.horarios })),
 }
