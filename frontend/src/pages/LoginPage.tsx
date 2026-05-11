@@ -19,7 +19,7 @@ export default function LoginPage() {
     const resultado = mockLogin(email, senha)
     setCarregando(false)
     if (!resultado.ok) { setErro(resultado.erro ?? 'Erro ao fazer login.'); return }
-    login(resultado.token!, resultado.nome!, resultado.tipoUsuario!)
+    login(resultado.token!, resultado.nome!, resultado.tipoUsuario!, resultado.idUsuario!)
     navigate(resultado.tipoUsuario === 'GESTOR' ? '/dashboard' : '/mapa')
   }
 
@@ -32,8 +32,17 @@ export default function LoginPage() {
     }
     const resultado = mockLogin(emails[role], '123456')
     if (resultado.ok) {
-      login(resultado.token!, resultado.nome!, resultado.tipoUsuario!)
-      navigate('/mapa')
+      login(resultado.token!, resultado.nome!, resultado.tipoUsuario!, resultado.idUsuario!)
+      navigate(role === 'GESTOR' ? '/dashboard' : '/mapa')
+    }
+  }
+
+  const simularMembro = () => {
+    // Maria Aluna — tipo ALUNO, mas integrante do PET Computação
+    const resultado = mockLogin('maria@utfpr.edu.br', '123456')
+    if (resultado.ok) {
+      login(resultado.token!, resultado.nome!, resultado.tipoUsuario!, resultado.idUsuario!)
+      navigate('/projetos')
     }
   }
 
@@ -63,8 +72,17 @@ export default function LoginPage() {
         {(['GESTOR', 'PROFESSOR', 'TUTOR', 'ALUNO'] as TipoUsuario[]).map(role => (
           <button key={role} onClick={() => simular(role)} style={{ fontSize: 11, padding: '4px 10px', cursor: 'pointer' }}>{role}</button>
         ))}
+        <button
+          onClick={simularMembro}
+          style={{ fontSize: 11, padding: '4px 10px', cursor: 'pointer', background: '#e8f5e9', border: '1px solid #4caf50' }}
+          title="Maria Aluna — ALUNO integrante do PET Computação"
+        >
+          ALUNO-MEMBRO
+        </button>
       </div>
-      <p style={{ fontSize: 10, color: '#bbb', marginTop: 8 }}>Senha padrão: 123456</p>
+      <p style={{ fontSize: 10, color: '#bbb', marginTop: 8 }}>
+        Senha padrão: 123456 · ALUNO-MEMBRO = Maria, integrante do PET Computação (acesso ao projeto sem ser TUTOR)
+      </p>
     </main>
   )
 }

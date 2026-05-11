@@ -3,6 +3,7 @@ import type { SalaDTO, Visibilidade } from '../types'
 import { useAuth } from '../context/AuthContext'
 import { reservaService } from '../services/reservaService'
 import { usuarioService } from '../services/usuarioService'
+import { projetoService } from '../services/projetoService'
 
 interface Props {
   sala: SalaDTO
@@ -12,7 +13,7 @@ interface Props {
 }
 
 export default function ModalReservaComponent({ sala, aberto, onFechar, onCriada }: Props) {
-  const { nome } = useAuth()
+  const { nome, idUsuario } = useAuth()
   const hoje = new Date().toISOString().split('T')[0]
   const [titulo, setTitulo] = useState('')
   const [visibilidade, setVisibilidade] = useState<Visibilidade>('PUBLICA')
@@ -24,7 +25,10 @@ export default function ModalReservaComponent({ sala, aberto, onFechar, onCriada
 
   if (!aberto) return null
 
-  const precisaAprovacao = sala.tipoSala === 'PROJETO' || recorrente
+  const isMembroDoProjeto = sala.tipoSala === 'PROJETO' && !!idUsuario &&
+    projetoService.isMembroDaSala(idUsuario, sala.id)
+
+  const precisaAprovacao = (sala.tipoSala === 'PROJETO' && !isMembroDoProjeto) || recorrente
 
   const confirmar = () => {
     setErro('')
@@ -58,7 +62,7 @@ export default function ModalReservaComponent({ sala, aberto, onFechar, onCriada
         </p>
         {precisaAprovacao && (
           <div style={{ background: '#fff3cd', border: '1px solid #f0ad4e', padding: '8px 12px', borderRadius: 4, marginBottom: 12, fontSize: 13 }}>
-            ⚠️ {sala.tipoSala === 'PROJETO'
+            ⚠️ {sala.tipoSala === 'PROJETO' && !isMembroDoProjeto
               ? 'Sala de projeto — reserva ficará pendente até aprovação do Gestor.'
               : 'Reserva semestral (recorrente) — ficará pendente até aprovação do Gestor.'}
           </div>

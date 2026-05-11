@@ -27,4 +27,11 @@ export const projetoService = {
     const idx = projetos.findIndex(p => p.id === id)
     if (idx !== -1) { projetos[idx].aprovado = true; db.projetos.save(projetos) }
   },
+  isMembro: (idUsuario: number): boolean =>
+    db.membros.all().some(m => m.idUsuario === idUsuario),
+  isMembroDaSala: (idUsuario: number, idSala: number): boolean =>
+    db.projetos.all().some(p =>
+      p.idSalaExclusiva === idSala &&
+      db.membros.all().some(m => m.idProjeto === p.id && m.idUsuario === idUsuario)
+    ),
 }

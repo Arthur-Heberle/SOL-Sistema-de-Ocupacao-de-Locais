@@ -18,8 +18,13 @@ export const reservaService = {
     const hasConflict = reservas
       .filter(r => r.idSala === dados.idSala && r.status === 'APROVADA')
       .some(r => dados.dataInicio < r.dataFim && dados.dataFim > r.dataInicio)
+    const isMembroDoProjetoDaSala = sala?.tipoSala === 'PROJETO' &&
+      db.projetos.all().some(p =>
+        p.idSalaExclusiva === sala.id &&
+        db.membros.all().some(m => m.idProjeto === p.id && m.idUsuario === dados.idUsuario)
+      )
     const status: StatusReserva =
-      sala?.tipoSala === 'PROJETO' ? 'PENDENTE'
+      (sala?.tipoSala === 'PROJETO' && !isMembroDoProjetoDaSala) ? 'PENDENTE'
       : dados.recorrente ? 'PENDENTE'
       : hasConflict ? 'PENDENTE'
       : 'APROVADA'

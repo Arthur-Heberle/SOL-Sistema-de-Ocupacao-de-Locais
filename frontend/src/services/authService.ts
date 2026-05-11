@@ -13,6 +13,7 @@ export interface LoginResult {
   token?: string
   nome?: string
   tipoUsuario?: TipoUsuario
+  idUsuario?: number
   erro?: string
 }
 
@@ -30,5 +31,6 @@ export function login(email: string, senha: string): LoginResult {
     token: `mock-token-${Date.now()}`,
     nome: usuario.nome,
     tipoUsuario: usuario.tipoUsuario,
+    idUsuario: usuario.id,
   }
 }

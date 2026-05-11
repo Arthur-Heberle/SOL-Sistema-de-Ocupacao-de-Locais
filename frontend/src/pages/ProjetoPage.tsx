@@ -1,17 +1,39 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { projetoService } from '../services/projetoService'
+import { reservaService } from '../services/reservaService'
+import { salaService } from '../services/salaService'
 import { useAuth } from '../context/AuthContext'
 import HorariosLivresComponent from '../components/HorariosLivresComponent'
 import MembrosListComponent from '../components/MembrosListComponent'
+import CalendarioComponent from '../components/CalendarioComponent'
+import ModalReservaComponent from '../components/ModalReservaComponent'
 
 export default function ProjetoPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { tipoUsuario } = useAuth()
+  const { tipoUsuario, idUsuario } = useAuth()
   const idNum = Number(id)
+
   const projetoInicial = projetoService.buscarPorId(idNum)
   const [aprovado, setAprovado] = useState(projetoInicial?.aprovado ?? false)
+  const [modalAberto, setModalAberto] = useState(false)
+
+  const membros = projetoInicial ? projetoService.membros(idNum) : []
+  const isMembroOuGestor = tipoUsuario === 'GESTOR' ||
+    (idUsuario !== null && membros.some(m => m.idUsuario === idUsuario))
+
+  const sala = projetoInicial?.idSalaExclusiva
+    ? salaService.buscarPorId(projetoInicial.idSalaExclusiva) ?? null
+    : null
+
+  const getReservasDaSala = () => sala
+    ? reservaService.reservasDaSala(sala.id).filter(r =>
+        isMembroOuGestor || r.visibilidade === 'PUBLICA'
+      )
+    : []
+
+  const [reservasDaSala, setReservasDaSala] = useState(getReservasDaSala)
 
   if (!projetoInicial) {
     return (
@@ -56,13 +78,65 @@ export default function ProjetoPage() {
           ✓ Projeto aprovado.
         </div>
       )}
+
       <section style={{ marginBottom: 28 }}>
         <h2 style={{ marginBottom: 12 }}>Membros</h2>
         <MembrosListComponent idProjeto={projetoInicial.id} />
       </section>
+
+      {sala && aprovado && (
+        <section style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h2 style={{ margin: 0 }}>
+              Sala Exclusiva — {sala.codigoNome}
+              <span style={{ fontWeight: 400, fontSize: 13, color: '#666', marginLeft: 8 }}>
+                Cap. {sala.capacidade}{sala.possuiProjetor ? ' · Projetor' : ''}
+              </span>
+            </h2>
+            {isMembroOuGestor && (
+              <button
+                onClick={() => setModalAberto(true)}
+                style={{ padding: '6px 14px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}
+              >
+                + Agendar Atividade
+              </button>
+            )}
+          </div>
+          {!isMembroOuGestor && (
+            <p style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>
+              Exibindo apenas atividades públicas.
+            </p>
+          )}
+          <CalendarioComponent reservas={reservasDaSala} salas={[sala]} />
+          {modalAberto && (
+            <ModalReservaComponent
+              sala={sala}
+              aberto={modalAberto}
+              onFechar={() => setModalAberto(false)}
+              onCriada={() => {
+                setReservasDaSala(getReservasDaSala())
+                setModalAberto(false)
+              }}
+            />
+          )}
+        </section>
+      )}
+
+      {sala && !aprovado && isMembroOuGestor && (
+        <div style={{ background: '#f8f9fa', border: '1px solid #dee2e6', padding: 12, borderRadius: 6, marginBottom: 28, fontSize: 13, color: '#6c757d' }}>
+          A sala exclusiva e o agendamento de atividades ficam disponíveis após aprovação do projeto.
+        </div>
+      )}
+
       <section style={{ marginBottom: 28 }}>
-        <h2 style={{ marginBottom: 12 }}>Horários Livres</h2>
-        <HorariosLivresComponent idProjeto={projetoInicial.id} />
+        <h2 style={{ marginBottom: 12 }}>Horários Livres dos Integrantes</h2>
+        {isMembroOuGestor ? (
+          <HorariosLivresComponent idProjeto={projetoInicial.id} />
+        ) : (
+          <p style={{ fontSize: 13, color: '#888' }}>
+            Apenas integrantes e o Gestor podem visualizar e editar os horários livres.
+          </p>
+        )}
       </section>
     </main>
   )
