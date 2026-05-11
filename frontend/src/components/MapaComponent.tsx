@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import type { SalaDTO, FiltroMapaDTO, ReservaDTO } from '../types'
 import { salaService } from '../services/salaService'
 import { reservaService } from '../services/reservaService'
+import { useAuth } from '../context/AuthContext'
 import ModalReservaComponent from './ModalReservaComponent'
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function MapaComponent({ filtro }: Props) {
+  const { tipoUsuario } = useAuth()
   const [salas, setSalas] = useState<SalaDTO[]>([])
   const [salaSelecionada, setSalaSelecionada] = useState<SalaDTO | null>(null)
   const [reservas, setReservas] = useState<ReservaDTO[]>([])
@@ -47,14 +49,14 @@ export default function MapaComponent({ filtro }: Props) {
             {rooms.map(sala => (
               <div
                 key={sala.id}
-                onClick={() => sala.permiteReserva && setSalaSelecionada(sala)}
+                onClick={() => sala.permiteReserva && tipoUsuario !== 'ALUNO' && setSalaSelecionada(sala)}
                 style={{
                   background: corSala(sala),
                   border: '1px solid #bbb',
                   borderRadius: 6,
                   padding: '12px 16px',
                   minWidth: 130,
-                  cursor: sala.permiteReserva ? 'pointer' : 'default',
+                  cursor: sala.permiteReserva && tipoUsuario !== 'ALUNO' ? 'pointer' : 'default',
                   userSelect: 'none',
                 }}
               >
@@ -63,6 +65,9 @@ export default function MapaComponent({ filtro }: Props) {
                 <div style={{ fontSize: 11, color: '#555' }}>Cap: {sala.capacidade}</div>
                 {sala.possuiProjetor && <div style={{ fontSize: 10, color: '#888' }}>Projetor</div>}
                 {!sala.permiteReserva && <div style={{ fontSize: 10, color: '#999', marginTop: 4 }}>Somente visualização</div>}
+                {tipoUsuario === 'ALUNO' && sala.permiteReserva && (
+                  <div style={{ fontSize: 10, color: '#888', marginTop: 4 }}>Somente visualização</div>
+                )}
                 {ocupada(sala) && sala.permiteReserva && <div style={{ fontSize: 10, color: '#c00', marginTop: 4 }}>Ocupada</div>}
               </div>
             ))}

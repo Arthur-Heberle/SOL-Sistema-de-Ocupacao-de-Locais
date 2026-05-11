@@ -5,6 +5,7 @@ import LoginPage from '../pages/LoginPage'
 import MapaPage from '../pages/MapaPage'
 import DashboardPage from '../pages/DashboardPage'
 import ProjetoPage from '../pages/ProjetoPage'
+import ProjetosListPage from '../pages/ProjetosListPage'
 import GestaoUsuariosPage from '../pages/GestaoUsuariosPage'
 import GestaoSalasPage from '../pages/GestaoSalasPage'
 import GestaoDisciplinasPage from '../pages/GestaoDisciplinasPage'
@@ -33,8 +34,8 @@ export default function AppRoutes() {
       <Route
         path="/projetos"
         element={
-          <ProtectedRoute minRole="PROFESSOR">
-            <Layout><ProjetoPage /></Layout>
+          <ProtectedRoute minRole="TUTOR">
+            <Layout><ProjetosListPage /></Layout>
           </ProtectedRoute>
         }
       />

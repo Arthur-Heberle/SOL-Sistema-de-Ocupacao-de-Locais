@@ -20,6 +20,7 @@ export const reservaService = {
       .some(r => dados.dataInicio < r.dataFim && dados.dataFim > r.dataInicio)
     const status: StatusReserva =
       sala?.tipoSala === 'PROJETO' ? 'PENDENTE'
+      : dados.recorrente ? 'PENDENTE'
       : hasConflict ? 'PENDENTE'
       : 'APROVADA'
     const nova: ReservaDTO = { ...dados, id: db.nextId(reservas), status }

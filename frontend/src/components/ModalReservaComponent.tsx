@@ -24,7 +24,7 @@ export default function ModalReservaComponent({ sala, aberto, onFechar, onCriada
 
   if (!aberto) return null
 
-  const precisaAprovacao = sala.tipoSala === 'PROJETO'
+  const precisaAprovacao = sala.tipoSala === 'PROJETO' || recorrente
 
   const confirmar = () => {
     setErro('')
@@ -58,7 +58,9 @@ export default function ModalReservaComponent({ sala, aberto, onFechar, onCriada
         </p>
         {precisaAprovacao && (
           <div style={{ background: '#fff3cd', border: '1px solid #f0ad4e', padding: '8px 12px', borderRadius: 4, marginBottom: 12, fontSize: 13 }}>
-            Sala de projeto — reserva ficará <strong>pendente</strong> até aprovação do Gestor.
+            ⚠️ {sala.tipoSala === 'PROJETO'
+              ? 'Sala de projeto — reserva ficará pendente até aprovação do Gestor.'
+              : 'Reserva semestral (recorrente) — ficará pendente até aprovação do Gestor.'}
           </div>
         )}
         <div style={{ marginBottom: 10 }}>
