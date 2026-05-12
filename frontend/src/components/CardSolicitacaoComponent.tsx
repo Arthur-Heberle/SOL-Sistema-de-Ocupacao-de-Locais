@@ -3,14 +3,15 @@ import { salaService } from '../services/salaService'
 
 interface Props {
   reserva: ReservaDTO
-  onAprovar: (id: number) => void
-  onRejeitar: (id: number) => void
+  onAprovar?: (id: number) => void
+  onRejeitar?: (id: number) => void
 }
 
 export default function CardSolicitacaoComponent({ reserva, onAprovar, onRejeitar }: Props) {
   const sala = salaService.buscarPorId(reserva.idSala)
   const inicio = new Date(reserva.dataInicio).toLocaleString('pt-BR')
   const fim = new Date(reserva.dataFim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  const podeGerenciar = !!onAprovar && !!onRejeitar
 
   return (
     <div style={{ border: '1px solid #f0ad4e', borderRadius: 6, padding: 16, marginBottom: 12, maxWidth: 560 }}>
@@ -27,20 +28,26 @@ export default function CardSolicitacaoComponent({ reserva, onAprovar, onRejeita
           PENDENTE
         </span>
       </div>
-      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-        <button
-          onClick={() => onAprovar(reserva.id)}
-          style={{ background: '#5cb85c', color: '#fff', border: 'none', padding: '6px 16px', borderRadius: 4, cursor: 'pointer' }}
-        >
-          Aprovar
-        </button>
-        <button
-          onClick={() => onRejeitar(reserva.id)}
-          style={{ background: '#d9534f', color: '#fff', border: 'none', padding: '6px 16px', borderRadius: 4, cursor: 'pointer' }}
-        >
-          Rejeitar
-        </button>
-      </div>
+      {podeGerenciar ? (
+        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+          <button
+            onClick={() => onAprovar!(reserva.id)}
+            style={{ background: '#5cb85c', color: '#fff', border: 'none', padding: '6px 16px', borderRadius: 4, cursor: 'pointer' }}
+          >
+            Aprovar
+          </button>
+          <button
+            onClick={() => onRejeitar!(reserva.id)}
+            style={{ background: '#d9534f', color: '#fff', border: 'none', padding: '6px 16px', borderRadius: 4, cursor: 'pointer' }}
+          >
+            Rejeitar
+          </button>
+        </div>
+      ) : (
+        <div style={{ marginTop: 10, fontSize: 12, color: '#856404' }}>
+          Aguardando análise do Gestor de Salas.
+        </div>
+      )}
     </div>
   )
 }

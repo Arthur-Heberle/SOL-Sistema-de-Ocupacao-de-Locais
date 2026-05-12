@@ -85,6 +85,24 @@ function load<T>(key: string, seed: T[]): T[] {
   return JSON.parse(raw) as T[]
 }
 
+function loadWithMerge<T extends { id: number }>(key: string, seed: T[]): T[] {
+  const raw = localStorage.getItem(key)
+  if (!raw) {
+    localStorage.setItem(key, JSON.stringify(seed))
+    return [...seed]
+  }
+  const stored = JSON.parse(raw) as T[]
+  let changed = false
+  for (const item of seed) {
+    if (!stored.some(s => s.id === item.id)) {
+      stored.push(item)
+      changed = true
+    }
+  }
+  if (changed) localStorage.setItem(key, JSON.stringify(stored))
+  return stored
+}
+
 function save<T>(key: string, data: T[]): void {
   localStorage.setItem(key, JSON.stringify(data))
 }
@@ -95,7 +113,7 @@ function nextId<T extends { id: number }>(items: T[]): number {
 
 export const db = {
   usuarios: {
-    all: () => load<UsuarioDTO>('sol.usuarios', SEED_USUARIOS),
+    all: () => loadWithMerge<UsuarioDTO>('sol.usuarios', SEED_USUARIOS),
     save: (items: UsuarioDTO[]) => save('sol.usuarios', items),
   },
   salas: {

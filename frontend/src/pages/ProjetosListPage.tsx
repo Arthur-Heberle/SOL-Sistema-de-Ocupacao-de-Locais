@@ -16,8 +16,8 @@ export default function ProjetosListPage() {
     if (tipoUsuario === 'GESTOR') return todos
     const usuario = usuarioService.listar().find(u => u.nome === nome)
     if (!usuario) return []
-    if (tipoUsuario === 'PROFESSOR') return todos.filter(p => p.idTutor === usuario.id)
     return todos.filter(p =>
+      p.idTutor === usuario.id ||
       projetoService.membros(p.id).some(m => m.idUsuario === usuario.id)
     )
   }
@@ -35,7 +35,7 @@ export default function ProjetosListPage() {
           <h1>Projetos</h1>
           <p style={{ color: '#666', marginTop: 4 }}>Projetos vinculados à sua conta</p>
         </div>
-        {(tipoUsuario === 'PROFESSOR' || tipoUsuario === 'GESTOR') && (
+        {(tipoUsuario === 'PROFESSOR' || tipoUsuario === 'TUTOR' || tipoUsuario === 'GESTOR') && (
           <button
             onClick={() => setShowForm(!showForm)}
             style={{ padding: '8px 16px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
@@ -55,7 +55,7 @@ export default function ProjetosListPage() {
       {projetos.length === 0 ? (
         <div style={{ background: '#f8f9fa', border: '1px solid #dee2e6', padding: 24, borderRadius: 6, color: '#6c757d', textAlign: 'center' }}>
           Nenhum projeto encontrado para sua conta.
-          {(tipoUsuario === 'PROFESSOR' || tipoUsuario === 'GESTOR') && (
+          {(tipoUsuario === 'PROFESSOR' || tipoUsuario === 'TUTOR' || tipoUsuario === 'GESTOR') && (
             <> Clique em <strong>+ Novo Projeto</strong> para começar.</>
           )}
         </div>

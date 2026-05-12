@@ -3,34 +3,47 @@ import { Link } from 'react-router-dom'
 import type { ReservaDTO, ProjetoDTO } from '../types'
 import { reservaService } from '../services/reservaService'
 import { projetoService } from '../services/projetoService'
+import { useAuth } from '../context/AuthContext'
 import CardSolicitacaoComponent from '../components/CardSolicitacaoComponent'
 
 export default function DashboardPage() {
-  const [pendentes, setPendentes] = useState<ReservaDTO[]>(() => reservaService.pendentes())
-  const [projetosPendentes, setProjetosPendentes] = useState<ProjetoDTO[]>(() =>
-    projetoService.listar().filter(p => !p.aprovado)
-  )
+  const { tipoUsuario, idUsuario } = useAuth()
+  const isGestor = tipoUsuario === 'GESTOR'
+
+  const [pendentes, setPendentes] = useState<ReservaDTO[]>(() => {
+    const todas = reservaService.pendentes()
+    return isGestor ? todas : todas.filter(r => r.idUsuario === idUsuario)
+  })
+
+  const [projetosPendentes, setProjetosPendentes] = useState<ProjetoDTO[]>(() => {
+    const todos = projetoService.listar().filter(p => !p.aprovado)
+    return isGestor ? todos : todos.filter(p => p.idTutor === idUsuario)
+  })
 
   const aprovar = (id: number) => {
     reservaService.aprovar(id)
-    setPendentes(reservaService.pendentes())
+    setPendentes(reservaService.pendentes().filter(r => isGestor || r.idUsuario === idUsuario))
   }
 
   const rejeitar = (id: number) => {
     reservaService.rejeitar(id)
-    setPendentes(reservaService.pendentes())
+    setPendentes(reservaService.pendentes().filter(r => isGestor || r.idUsuario === idUsuario))
   }
 
   return (
     <main>
-      <h1>Dashboard — Solicitações Pendentes</h1>
+      <h1>{isGestor ? 'Dashboard — Solicitações Pendentes' : 'Minhas Solicitações'}</h1>
       <p style={{ color: '#666', marginBottom: 20 }}>
-        Reservas e projetos aguardando aprovação do Gestor de Salas
+        {isGestor
+          ? 'Reservas e projetos aguardando aprovação do Gestor de Salas'
+          : 'Acompanhe o status das suas reservas e projetos enviados para aprovação'}
       </p>
 
       {projetosPendentes.length > 0 && (
         <section style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 16, marginBottom: 12 }}>Projetos Pendentes</h2>
+          <h2 style={{ fontSize: 16, marginBottom: 12 }}>
+            {isGestor ? 'Projetos Pendentes' : 'Meus Projetos Aguardando Aprovação'}
+          </h2>
           <p style={{ marginBottom: 12, color: '#555', fontSize: 14 }}>
             {projetosPendentes.length} projeto(s) aguardando aprovação
           </p>
@@ -53,7 +66,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <span style={{ fontSize: 12, color: '#856404', fontWeight: 600, whiteSpace: 'nowrap', marginLeft: 12 }}>
-                    Revisar →
+                    {isGestor ? 'Revisar →' : 'Ver detalhes →'}
                   </span>
                 </div>
               </Link>
@@ -63,10 +76,14 @@ export default function DashboardPage() {
       )}
 
       <section>
-        <h2 style={{ fontSize: 16, marginBottom: 12 }}>Reservas Pendentes</h2>
+        <h2 style={{ fontSize: 16, marginBottom: 12 }}>
+          {isGestor ? 'Reservas Pendentes' : 'Minhas Reservas Pendentes'}
+        </h2>
         {pendentes.length === 0 ? (
           <div style={{ background: '#d4edda', border: '1px solid #c3e6cb', padding: 20, borderRadius: 6, color: '#155724' }}>
-            Nenhuma solicitação de reserva pendente no momento.
+            {isGestor
+              ? 'Nenhuma solicitação de reserva pendente no momento.'
+              : 'Você não tem reservas aguardando aprovação no momento.'}
           </div>
         ) : (
           <>
@@ -77,8 +94,8 @@ export default function DashboardPage() {
               <CardSolicitacaoComponent
                 key={r.id}
                 reserva={r}
-                onAprovar={aprovar}
-                onRejeitar={rejeitar}
+                onAprovar={isGestor ? aprovar : undefined}
+                onRejeitar={isGestor ? rejeitar : undefined}
               />
             ))}
           </>

@@ -4,8 +4,8 @@ import type { TipoUsuario } from '../types'
 
 const ROLE_RANK: Record<TipoUsuario, number> = {
   ALUNO: 1,
-  TUTOR: 2,
-  PROFESSOR: 3,
+  PROFESSOR: 2,
+  TUTOR: 3,
   GESTOR: 4,
 }
 

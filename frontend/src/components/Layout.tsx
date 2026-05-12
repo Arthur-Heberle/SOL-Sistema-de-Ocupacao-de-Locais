@@ -21,7 +21,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <nav style={{ padding: '8px 16px', background: '#1a1a2e', color: '#fff', display: 'flex', gap: '16px', alignItems: 'center' }}>
         <strong>SOL</strong>
         <Link to="/mapa" style={{ color: '#fff' }}>Mapa</Link>
-        {tipoUsuario && ['PROFESSOR', 'GESTOR'].includes(tipoUsuario) && (
+        {tipoUsuario && ['PROFESSOR', 'TUTOR', 'GESTOR'].includes(tipoUsuario) && (
           <Link to="/dashboard" style={{ color: '#fff' }}>Dashboard</Link>
         )}
         {canSeeProjetos && (
