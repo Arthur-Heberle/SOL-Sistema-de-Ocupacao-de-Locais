@@ -29,6 +29,19 @@ Full specification: `../Documentation/PlanodoProjeto.pdf` (80 pages, Portuguese)
 
 Covers: requirements, use cases, class diagrams, data dictionary, sequence diagrams.
 
+  ┌───────────┬─────────────────────┬──────────┐
+  │   Role    │        Email        │ Password │
+  ├───────────┼─────────────────────┼──────────┤
+  │ GESTOR    │ gestor@utfpr.edu.br │ 123456   │
+  ├───────────┼─────────────────────┼──────────┤
+  │ PROFESSOR │ ana@utfpr.edu.br    │ 123456   │
+  ├───────────┼─────────────────────┼──────────┤
+  │ TUTOR     │ carlos@utfpr.edu.br │ 123456   │
+  ├───────────┼─────────────────────┼──────────┤
+  │ ALUNO     │ maria@utfpr.edu.br  │ 123456   │
+  └───────────┴─────────────────────┴──────────┘
+
+
 ## Team
 
 Arthur G. P. Heberle, Luiz Henrique de Souza Correia, Rafael de Andrade Fernandes, Vinícius Romualdo Silva — UTFPR 2026

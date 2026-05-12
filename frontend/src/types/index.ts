@@ -70,3 +70,23 @@ export interface HorarioDTO {
   horaInicio: string
   horaFim: string
 }
+
+export interface DisciplinaDTO {
+  id: number
+  codigo: string
+  nome: string
+  semestre: string
+  idProfessor: number
+  cargaHoraria: number
+  turma: string
+}
+
+export interface MembroProjetoDTO {
+  id: number
+  idUsuario: number
+  idProjeto: number
+  nomeUsuario: string
+  emailUsuario: string
+  isGestor: boolean
+  dataIngresso?: string
+}

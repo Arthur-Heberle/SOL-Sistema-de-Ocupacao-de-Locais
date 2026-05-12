@@ -1,8 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { projetoService } from '../services/projetoService'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const { nome, tipoUsuario, logout, isAuthenticated } = useAuth()
+  const { nome, tipoUsuario, logout, isAuthenticated, idUsuario } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -10,13 +11,21 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     navigate('/login')
   }
 
+  const canSeeProjetos = tipoUsuario && (
+    ['TUTOR', 'PROFESSOR', 'GESTOR'].includes(tipoUsuario) ||
+    (idUsuario !== null && projetoService.isMembro(idUsuario))
+  )
+
   return (
     <>
       <nav style={{ padding: '8px 16px', background: '#1a1a2e', color: '#fff', display: 'flex', gap: '16px', alignItems: 'center' }}>
         <strong>SOL</strong>
         <Link to="/mapa" style={{ color: '#fff' }}>Mapa</Link>
-        {tipoUsuario && ['PROFESSOR', 'GESTOR'].includes(tipoUsuario) && (
+        {tipoUsuario && ['PROFESSOR', 'TUTOR', 'GESTOR'].includes(tipoUsuario) && (
           <Link to="/dashboard" style={{ color: '#fff' }}>Dashboard</Link>
+        )}
+        {canSeeProjetos && (
+          <Link to="/projetos" style={{ color: '#fff' }}>Projetos</Link>
         )}
         {tipoUsuario === 'GESTOR' && (
           <>

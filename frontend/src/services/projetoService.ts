@@ -1,0 +1,37 @@
+import type { ProjetoDTO, MembroProjetoDTO } from '../types'
+import { db } from './mockDB'
+
+export const projetoService = {
+  listar: (): ProjetoDTO[] => db.projetos.all(),
+  buscarPorId: (id: number): ProjetoDTO | undefined =>
+    db.projetos.all().find(p => p.id === id),
+  criar: (dados: Omit<ProjetoDTO, 'id' | 'aprovado'>): ProjetoDTO => {
+    const projetos = db.projetos.all()
+    const novo: ProjetoDTO = { ...dados, id: db.nextId(projetos), aprovado: false }
+    db.projetos.save([...projetos, novo])
+    return novo
+  },
+  membros: (idProjeto: number): MembroProjetoDTO[] =>
+    db.membros.all().filter(m => m.idProjeto === idProjeto),
+  adicionarMembro: (membro: Omit<MembroProjetoDTO, 'id'>): MembroProjetoDTO => {
+    const membros = db.membros.all()
+    const novo = { ...membro, id: db.nextId(membros) }
+    db.membros.save([...membros, novo])
+    return novo
+  },
+  removerMembro: (id: number): void => {
+    db.membros.save(db.membros.all().filter(m => m.id !== id))
+  },
+  aprovar: (id: number): void => {
+    const projetos = db.projetos.all()
+    const idx = projetos.findIndex(p => p.id === id)
+    if (idx !== -1) { projetos[idx].aprovado = true; db.projetos.save(projetos) }
+  },
+  isMembro: (idUsuario: number): boolean =>
+    db.membros.all().some(m => m.idUsuario === idUsuario),
+  isMembroDaSala: (idUsuario: number, idSala: number): boolean =>
+    db.projetos.all().some(p =>
+      p.idSalaExclusiva === idSala &&
+      db.membros.all().some(m => m.idProjeto === p.id && m.idUsuario === idUsuario)
+    ),
+}

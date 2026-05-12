@@ -1,46 +1,97 @@
-import type { SalaDTO } from '../types'
+import { useState, useEffect } from 'react'
+import type { SalaDTO, FiltroMapaDTO, ReservaDTO } from '../types'
+import { salaService } from '../services/salaService'
+import { reservaService } from '../services/reservaService'
+import { useAuth } from '../context/AuthContext'
+import ModalReservaComponent from './ModalReservaComponent'
 
-export default function MapaComponent() {
-  const mockRooms: SalaDTO[] = [
-    { id: 1, bloco: 'CB', codigoNome: 'CB-001', tipoSala: 'AULA', capacidade: 40, possuiProjetor: true, permiteReserva: true },
-    { id: 2, bloco: 'CB', codigoNome: 'CB-002', tipoSala: 'LABORATORIO', capacidade: 30, possuiProjetor: true, permiteReserva: true },
-    { id: 3, bloco: 'CB', codigoNome: 'CB-003', tipoSala: 'PROJETO', capacidade: 10, possuiProjetor: false, permiteReserva: true },
-    { id: 4, bloco: 'CB', codigoNome: 'CB-DEPT', tipoSala: 'DEPARTAMENTO', capacidade: 5, possuiProjetor: false, permiteReserva: false },
-  ]
+interface Props {
+  filtro: FiltroMapaDTO
+}
 
-  const roomColor = (sala: SalaDTO) => {
+export default function MapaComponent({ filtro }: Props) {
+  const { tipoUsuario } = useAuth()
+  const [salas, setSalas] = useState<SalaDTO[]>([])
+  const [salaSelecionada, setSalaSelecionada] = useState<SalaDTO | null>(null)
+  const [reservas, setReservas] = useState<ReservaDTO[]>([])
+
+  const recarregar = () => {
+    setSalas(salaService.listar({ bloco: filtro.bloco }))
+    setReservas(reservaService.listar({ status: 'APROVADA' }))
+  }
+
+  useEffect(recarregar, [filtro.bloco])
+
+  const ocupada = (sala: SalaDTO): boolean => {
+    const dataRef = filtro.dataFoco
+    return reservas.some(r => {
+      if (r.idSala !== sala.id) return false
+      if (!dataRef) return true
+      if (r.recorrente) {
+        return new Date(r.dataInicio).getDay() === new Date(dataRef + 'T12:00').getDay()
+      }
+      return r.dataInicio.startsWith(dataRef)
+    })
+  }
+
+  const corSala = (sala: SalaDTO): string => {
     if (!sala.permiteReserva) return '#e0e0e0'
+    if (ocupada(sala)) return '#f5c6cb'
     return '#c8f7c5'
   }
 
+  const porBloco = salas.reduce<Record<string, SalaDTO[]>>((acc, s) => {
+    acc[s.bloco] = [...(acc[s.bloco] ?? []), s]
+    return acc
+  }, {})
+
   return (
     <div>
-      <strong>[MapaComponent]</strong>
-      <p style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>
-        TODO: load from SalaApiService · green=available, red=occupied, grey=DEPARTAMENTO · click → ModalReservaComponent
-      </p>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {mockRooms.map(sala => (
-          <div
-            key={sala.id}
-            onClick={() => alert(`TODO: open ModalReservaComponent for sala ${sala.codigoNome}`)}
-            style={{
-              background: roomColor(sala),
-              border: '1px solid #ccc',
-              borderRadius: 4,
-              padding: '12px 16px',
-              cursor: sala.permiteReserva ? 'pointer' : 'not-allowed',
-              minWidth: 120,
-            }}
-          >
-            <strong>{sala.codigoNome}</strong><br />
-            <span style={{ fontSize: 12 }}>{sala.tipoSala}</span><br />
-            <span style={{ fontSize: 11, color: '#555' }}>Cap: {sala.capacidade}</span>
-            {!sala.permiteReserva && <div style={{ fontSize: 10, color: '#999' }}>Somente visualização</div>}
-          </div>
-        ))}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 12, fontSize: 12 }}>
+        <span style={{ background: '#c8f7c5', padding: '2px 8px', borderRadius: 3 }}>Disponível</span>
+        <span style={{ background: '#f5c6cb', padding: '2px 8px', borderRadius: 3 }}>Ocupada</span>
+        <span style={{ background: '#e0e0e0', padding: '2px 8px', borderRadius: 3 }}>Somente visualização</span>
       </div>
-      {/* TODO: ModalReservaComponent rendered here, controlled by modalAberto state */}
+      {Object.entries(porBloco).map(([bloco, rooms]) => (
+        <div key={bloco} style={{ marginBottom: 20 }}>
+          <h3 style={{ marginBottom: 8, fontSize: 14, color: '#444' }}>Bloco {bloco}</h3>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {rooms.map(sala => (
+              <div
+                key={sala.id}
+                onClick={() => sala.permiteReserva && tipoUsuario !== 'ALUNO' && setSalaSelecionada(sala)}
+                style={{
+                  background: corSala(sala),
+                  border: '1px solid #bbb',
+                  borderRadius: 6,
+                  padding: '12px 16px',
+                  minWidth: 130,
+                  cursor: sala.permiteReserva && tipoUsuario !== 'ALUNO' ? 'pointer' : 'default',
+                  userSelect: 'none',
+                }}
+              >
+                <div style={{ fontWeight: 700 }}>{sala.codigoNome}</div>
+                <div style={{ fontSize: 11, color: '#555' }}>{sala.tipoSala}</div>
+                <div style={{ fontSize: 11, color: '#555' }}>Cap: {sala.capacidade}</div>
+                {sala.possuiProjetor && <div style={{ fontSize: 10, color: '#888' }}>Projetor</div>}
+                {!sala.permiteReserva && <div style={{ fontSize: 10, color: '#999', marginTop: 4 }}>Somente visualização</div>}
+                {tipoUsuario === 'ALUNO' && sala.permiteReserva && (
+                  <div style={{ fontSize: 10, color: '#888', marginTop: 4 }}>Somente visualização</div>
+                )}
+                {ocupada(sala) && sala.permiteReserva && <div style={{ fontSize: 10, color: '#c00', marginTop: 4 }}>Ocupada</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      {salaSelecionada && (
+        <ModalReservaComponent
+          sala={salaSelecionada}
+          aberto={true}
+          onFechar={() => setSalaSelecionada(null)}
+          onCriada={() => { recarregar(); setSalaSelecionada(null) }}
+        />
+      )}
     </div>
   )
 }

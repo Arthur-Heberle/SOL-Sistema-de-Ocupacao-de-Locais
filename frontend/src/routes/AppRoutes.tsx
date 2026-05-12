@@ -5,6 +5,7 @@ import LoginPage from '../pages/LoginPage'
 import MapaPage from '../pages/MapaPage'
 import DashboardPage from '../pages/DashboardPage'
 import ProjetoPage from '../pages/ProjetoPage'
+import ProjetosListPage from '../pages/ProjetosListPage'
 import GestaoUsuariosPage from '../pages/GestaoUsuariosPage'
 import GestaoSalasPage from '../pages/GestaoSalasPage'
 import GestaoDisciplinasPage from '../pages/GestaoDisciplinasPage'
@@ -31,9 +32,17 @@ export default function AppRoutes() {
         }
       />
       <Route
+        path="/projetos"
+        element={
+          <ProtectedRoute minRole="ALUNO">
+            <Layout><ProjetosListPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/projetos/:id"
         element={
-          <ProtectedRoute minRole="TUTOR">
+          <ProtectedRoute minRole="ALUNO">
             <Layout><ProjetoPage /></Layout>
           </ProtectedRoute>
         }
