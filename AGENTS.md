@@ -1,4 +1,4 @@
-# AGENTS.md — SOL Project
+# AGENTS.md - SOL Project
 
 Guidelines for AI subagents working on this project.
 
@@ -14,23 +14,30 @@ When reading `/home/aheberle/UTFPR/APS/Documentation/PlanodoProjeto.pdf`:
 
 Always run these 3 agents **IN PARALLEL** (single message with 3 Agent tool calls).
 
+Prefer `PlanodoProjeto.md` when the local Markdown version is sufficient.
+
 ## Code Agents
 
-- Only modify files inside `project/frontend/src/`
-- Follow conventions in `CLAUDE.md`: PascalCase components, CSS Modules, no barrel files
-- Never touch `project/backend/` — it does not exist yet
-- Every component must have a visible stub `<div>` with its name when not yet implemented
+- Frontend changes belong in `project/frontend/src/`.
+- Backend changes belong in `project/backend/`.
+- Do not modify generated build output or dependency caches.
+- Follow conventions in `CLAUDE.md` for frontend: PascalCase components, CSS Modules, no barrel files.
+- Every not-yet-implemented frontend component must have a visible stub `<div>` with its name.
 
 ## Implementation Rules
 
-- Tech stack: React 18 + TypeScript + Vite (frontend), Java Spring Boot (backend, future)
-- Role guard: use `ProtectedRoute` with `minRole` prop — never inline role checks in pages
-- Auth state: always use `useAuth()` from `AuthContext` — never read localStorage directly
-- Type definitions: always import from `src/types/index.ts` — never inline types
+- Frontend stack: React 18 + TypeScript + Vite.
+- Backend stack: Java 17 + Spring Boot 3 + Maven + Spring Data JPA + Spring Security JWT + Flyway + PostgreSQL.
+- Role guard: frontend routes use `ProtectedRoute` with `minRole`; do not inline role checks in pages.
+- Auth state: frontend uses `useAuth()` from `AuthContext`; do not read localStorage directly.
+- Type definitions: frontend imports from `src/types/index.ts`; do not inline duplicate frontend types.
+- Backend DTOs and API payloads must stay compatible with `frontend/src/types/index.ts`.
+- Backend business rules belong in services; controllers should delegate validation/authorization decisions to services or Spring Security.
+- Backend authentication must use `UsuarioRepository`, BCrypt password hashes and JWT; do not expose `senhaHash` in DTOs.
 
 ## Review Agents
 
-After any feature addition:
+After any frontend feature addition:
 
 ```bash
 cd project/frontend && npm run build
@@ -38,8 +45,18 @@ cd project/frontend && npm run build
 
 Expected: zero TypeScript errors, zero missing imports.
 
+After any backend feature addition:
+
+```bash
+cd project/backend && mvn test
+cd project/backend && mvn package
+```
+
+Expected: zero compilation errors and passing tests.
+
 ## Forbidden Actions
 
-- Do NOT commit `.env` files or secrets
-- Do NOT create new files outside `src/` without updating this AGENTS.md
-- Do NOT skip `ProtectedRoute` for any route that requires authentication
+- Do NOT commit `.env` files or secrets.
+- Do NOT modify `project/frontend/` when the task is backend-only.
+- Do NOT skip `ProtectedRoute` for any frontend route that requires authentication.
+- Do NOT bypass backend service-layer business rules with controller-only checks.
