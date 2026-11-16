@@ -1,12 +1,8 @@
-Com certeza\! Compreendi a sua solicitação. Você deseja os códigos Mermaid para todos os 11 casos de uso (UC001 a UC011) listados nos "Quadros" do documento, para que você possa copiar e colar, assumindo que ajustará os detalhes manualmente.
+# Diagramas de Sequência por Caso de Uso
 
-### **Informação Importante sobre a Numeração**
+Diagramas Mermaid para os casos de uso UC001 a UC011 descritos no [Plano do Projeto](../especificacao/plano-do-projeto.md). Cada diagrama é seguido de suas premissas e observações.
 
-**Nota:** Estou gerando os diagramas para os casos de uso conforme definidos nos Quadros do documento (UC001: Autenticação de Usuário, até UC011: Manter Disciplinas). *Ignorarei a sugestão que dei anteriormente na Turn 1 sobre a numeração na "LISTA DE FIGURAS" (que citava UC001 para Solicitar Reserva), pois ela estava incorreta em relação ao conteúdo real das tabelas funcionais do seu documento.* O objetivo é que os diagramas reflitam o que está descrito textualmente.
-
-Abaixo estão os códigos Mermaid completos e as seções de "Premissas e Observações" para cada um, conforme sua instrução.
-
-### ---
+---
 
 **\[UC001\] Autenticação de Usuário**
 

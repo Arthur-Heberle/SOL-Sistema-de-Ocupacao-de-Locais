@@ -4,7 +4,11 @@ import type { ReservaDTO, ProjetoDTO } from '../types'
 import { reservaService } from '../services/reservaService'
 import { projetoService } from '../services/projetoService'
 import { useAuth } from '../context/AuthContext'
+import { CATEGORIA_LABEL } from '../utils/rotulos'
 import CardSolicitacaoComponent from '../components/CardSolicitacaoComponent'
+import PageHeader from '../components/ui/PageHeader'
+import Alert from '../components/ui/Alert'
+import styles from './DashboardPage.module.css'
 
 export default function DashboardPage() {
   const { tipoUsuario, idUsuario } = useAuth()
@@ -15,7 +19,7 @@ export default function DashboardPage() {
     return isGestor ? todas : todas.filter(r => r.idUsuario === idUsuario)
   })
 
-  const [projetosPendentes, setProjetosPendentes] = useState<ProjetoDTO[]>(() => {
+  const [projetosPendentes] = useState<ProjetoDTO[]>(() => {
     const todos = projetoService.listar().filter(p => !p.aprovado)
     return isGestor ? todos : todos.filter(p => p.idTutor === idUsuario)
   })
@@ -32,43 +36,39 @@ export default function DashboardPage() {
 
   return (
     <main>
-      <h1>{isGestor ? 'Dashboard — Solicitações Pendentes' : 'Minhas Solicitações'}</h1>
-      <p style={{ color: '#666', marginBottom: 20 }}>
-        {isGestor
-          ? 'Reservas e projetos aguardando aprovação do Gestor de Salas'
-          : 'Acompanhe o status das suas reservas e projetos enviados para aprovação'}
-      </p>
+      <PageHeader
+        title={isGestor ? 'Solicitações pendentes' : 'Minhas solicitações'}
+        subtitle={isGestor
+          ? 'Reservas e projetos aguardando aprovação do Gestor de Salas.'
+          : 'Acompanhe o status das suas reservas e projetos enviados para aprovação.'}
+      />
+
+      <div className={styles.stats}>
+        <div className={styles.stat}>
+          <span className={styles.statValue}>{pendentes.length}</span>
+          <span className={styles.statLabel}>Reservas pendentes</span>
+        </div>
+        <div className={styles.stat}>
+          <span className={styles.statValue}>{projetosPendentes.length}</span>
+          <span className={styles.statLabel}>Projetos pendentes</span>
+        </div>
+      </div>
 
       {projetosPendentes.length > 0 && (
-        <section style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 16, marginBottom: 12 }}>
-            {isGestor ? 'Projetos Pendentes' : 'Meus Projetos Aguardando Aprovação'}
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>
+            {isGestor ? 'Projetos pendentes' : 'Meus projetos aguardando aprovação'}
           </h2>
-          <p style={{ marginBottom: 12, color: '#555', fontSize: 14 }}>
-            {projetosPendentes.length} projeto(s) aguardando aprovação
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className={styles.list}>
             {projetosPendentes.map(p => (
-              <Link key={p.id} to={`/projetos/${p.id}`} style={{ textDecoration: 'none' }}>
-                <div
-                  style={{
-                    border: '1px solid #f0ad4e', background: '#fff3cd',
-                    borderRadius: 6, padding: '12px 16px',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#ffe8a0')}
-                  onMouseLeave={e => (e.currentTarget.style.background = '#fff3cd')}
-                >
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: '#212529' }}>{p.nome}</div>
-                    <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
-                      {p.categoria} · {p.descricao.slice(0, 70)}{p.descricao.length > 70 ? '…' : ''}
-                    </div>
+              <Link key={p.id} to={`/projetos/${p.id}`} className={styles.row}>
+                <div>
+                  <div className={styles.rowNome}>{p.nome}</div>
+                  <div className={styles.rowDesc}>
+                    {CATEGORIA_LABEL[p.categoria]} · {p.descricao.slice(0, 70)}{p.descricao.length > 70 ? '…' : ''}
                   </div>
-                  <span style={{ fontSize: 12, color: '#856404', fontWeight: 600, whiteSpace: 'nowrap', marginLeft: 12 }}>
-                    {isGestor ? 'Revisar →' : 'Ver detalhes →'}
-                  </span>
                 </div>
+                <span className={styles.rowAction}>{isGestor ? 'Revisar' : 'Ver detalhes'}</span>
               </Link>
             ))}
           </div>
@@ -76,20 +76,17 @@ export default function DashboardPage() {
       )}
 
       <section>
-        <h2 style={{ fontSize: 16, marginBottom: 12 }}>
-          {isGestor ? 'Reservas Pendentes' : 'Minhas Reservas Pendentes'}
+        <h2 className={styles.sectionTitle}>
+          {isGestor ? 'Reservas pendentes' : 'Minhas reservas pendentes'}
         </h2>
         {pendentes.length === 0 ? (
-          <div style={{ background: '#d4edda', border: '1px solid #c3e6cb', padding: 20, borderRadius: 6, color: '#155724' }}>
+          <Alert tone="ok">
             {isGestor
               ? 'Nenhuma solicitação de reserva pendente no momento.'
               : 'Você não tem reservas aguardando aprovação no momento.'}
-          </div>
+          </Alert>
         ) : (
-          <>
-            <p style={{ marginBottom: 12, color: '#555', fontSize: 14 }}>
-              {pendentes.length} solicitação(ões) pendente(s)
-            </p>
+          <div className={styles.grid}>
             {pendentes.map(r => (
               <CardSolicitacaoComponent
                 key={r.id}
@@ -98,7 +95,7 @@ export default function DashboardPage() {
                 onRejeitar={isGestor ? rejeitar : undefined}
               />
             ))}
-          </>
+          </div>
         )}
       </section>
     </main>

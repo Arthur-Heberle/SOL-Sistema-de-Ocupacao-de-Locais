@@ -1,0 +1,6 @@
+.voltar { color: var(--ink-3); text-decoration: none; }
+.voltar::before { content: '\2190'; margin-right: 6px; }
+.voltar:hover { color: var(--ink); }
+.titulo { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.stack { display: flex; flex-direction: column; gap: 20px; }
+.muted { color: var(--ink-3); font-size: 13.5px; }

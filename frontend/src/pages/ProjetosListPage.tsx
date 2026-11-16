@@ -1,86 +1,68 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { projetoService } from '../services/projetoService'
-import { usuarioService } from '../services/usuarioService'
 import { useAuth } from '../context/AuthContext'
+import { CATEGORIA_LABEL } from '../utils/rotulos'
 import FormProjetoComponent from '../components/FormProjetoComponent'
+import PageHeader from '../components/ui/PageHeader'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
+import Badge from '../components/ui/Badge'
+import EmptyState from '../components/ui/EmptyState'
 import type { ProjetoDTO } from '../types'
+import styles from './ProjetosListPage.module.css'
 
 export default function ProjetosListPage() {
-  const { nome, tipoUsuario } = useAuth()
+  const { idUsuario, tipoUsuario } = useAuth()
   const [showForm, setShowForm] = useState(false)
   const [projetos, setProjetos] = useState<ProjetoDTO[]>(() => filtrarProjetos())
 
   function filtrarProjetos(): ProjetoDTO[] {
     const todos = projetoService.listar()
     if (tipoUsuario === 'GESTOR') return todos
-    const usuario = usuarioService.listar().find(u => u.nome === nome)
-    if (!usuario) return []
+    if (idUsuario == null) return []
     return todos.filter(p =>
-      p.idTutor === usuario.id ||
-      projetoService.membros(p.id).some(m => m.idUsuario === usuario.id)
+      p.idTutor === idUsuario ||
+      projetoService.membros(p.id).some(m => m.idUsuario === idUsuario)
     )
   }
 
   const recarregar = () => setProjetos(filtrarProjetos())
-
-  const categoriaLabel: Record<string, string> = {
-    ENSINO: 'Ensino', PESQUISA: 'Pesquisa', EXTENSAO: 'Extensão', GESTAO: 'Gestão',
-  }
+  const podeCriar = tipoUsuario === 'PROFESSOR' || tipoUsuario === 'TUTOR' || tipoUsuario === 'GESTOR'
 
   return (
     <main>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div>
-          <h1>Projetos</h1>
-          <p style={{ color: '#666', marginTop: 4 }}>Projetos vinculados à sua conta</p>
-        </div>
-        {(tipoUsuario === 'PROFESSOR' || tipoUsuario === 'TUTOR' || tipoUsuario === 'GESTOR') && (
-          <button
-            onClick={() => setShowForm(!showForm)}
-            style={{ padding: '8px 16px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-          >
-            {showForm ? 'Cancelar' : '+ Novo Projeto'}
-          </button>
+      <PageHeader
+        title="Projetos"
+        subtitle="Projetos vinculados à sua conta."
+        actions={podeCriar && (
+          <Button variant={showForm ? 'secondary' : 'primary'} onClick={() => setShowForm(!showForm)}>
+            {showForm ? 'Cancelar' : 'Novo projeto'}
+          </Button>
         )}
-      </div>
+      />
 
       {showForm && (
-        <div style={{ background: '#f9f9f9', border: '1px solid #ddd', borderRadius: 6, padding: 20, marginBottom: 24 }}>
-          <h2 style={{ marginBottom: 16, fontSize: 16 }}>Registrar Novo Projeto</h2>
+        <Card title="Registrar novo projeto" className={styles.formCard}>
           <FormProjetoComponent onCriado={() => { recarregar(); setShowForm(false) }} />
-        </div>
+        </Card>
       )}
 
       {projetos.length === 0 ? (
-        <div style={{ background: '#f8f9fa', border: '1px solid #dee2e6', padding: 24, borderRadius: 6, color: '#6c757d', textAlign: 'center' }}>
-          Nenhum projeto encontrado para sua conta.
-          {(tipoUsuario === 'PROFESSOR' || tipoUsuario === 'TUTOR' || tipoUsuario === 'GESTOR') && (
-            <> Clique em <strong>+ Novo Projeto</strong> para começar.</>
-          )}
-        </div>
+        <EmptyState title="Nenhum projeto encontrado para sua conta.">
+          {podeCriar && 'Clique em "Novo projeto" para começar.'}
+        </EmptyState>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className={styles.grid}>
           {projetos.map(p => (
-            <Link key={p.id} to={`/projetos/${p.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div
-                style={{ border: '1px solid #ddd', borderRadius: 6, padding: '14px 18px', background: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#f0f4ff')}
-                onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
-              >
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>{p.nome}</div>
-                  <div style={{ fontSize: 12, color: '#666', marginTop: 3 }}>
-                    {categoriaLabel[p.categoria]} · {p.descricao.slice(0, 80)}{p.descricao.length > 80 ? '…' : ''}
-                  </div>
-                </div>
-                <span style={{
-                  padding: '3px 10px', borderRadius: 10, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
-                  background: p.aprovado ? '#d4edda' : '#fff3cd',
-                  color: p.aprovado ? '#155724' : '#856404',
-                }}>
-                  {p.aprovado ? 'Aprovado' : 'Pendente'}
-                </span>
+            <Link key={p.id} to={`/projetos/${p.id}`} className={styles.item}>
+              <div className={styles.top}>
+                <h2 className={styles.nome}>{p.nome}</h2>
+              </div>
+              <p className={styles.desc}>{p.descricao}</p>
+              <div className={styles.foot}>
+                <Badge tone="info">{CATEGORIA_LABEL[p.categoria]}</Badge>
+                <Badge tone={p.aprovado ? 'ok' : 'warn'} dot>{p.aprovado ? 'Aprovado' : 'Pendente'}</Badge>
               </div>
             </Link>
           ))}

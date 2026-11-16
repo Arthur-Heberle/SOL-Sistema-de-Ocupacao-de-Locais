@@ -1,0 +1,55 @@
+.wrap { display: flex; flex-direction: column; gap: 10px; }
+.semana { font-size: 13px; color: var(--ink-2); }
+.scroll {
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.grade { table-layout: fixed; min-width: 720px; font-size: 12.5px; }
+.grade th, .grade td { border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); }
+.grade thead th {
+  padding: 10px 8px;
+  background: var(--surface-2);
+  font-weight: 500;
+  text-align: center;
+}
+.grade tbody tr:last-child > * { border-bottom: none; }
+.horaCol {
+  width: 64px;
+  border-left: none !important;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-3);
+  text-align: right;
+  vertical-align: top;
+  background: var(--surface);
+}
+.grade td { height: 52px; padding: 4px; vertical-align: top; }
+.diaNome { display: block; font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; }
+.diaData { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
+.grade thead .hoje .diaData {
+  display: inline-block;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #fff;
+}
+.grade td.foco { background: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+.grade thead th.foco { background: var(--accent-soft); }
+
+.evento {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 7px;
+  margin-bottom: 3px;
+  border-radius: 5px;
+  background: var(--info-soft);
+  border-left: 3px solid var(--info);
+  line-height: 1.3;
+}
+.privado { background: var(--surface-2); border-left-color: var(--ink-3); }
+.eventoTitulo { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eventoMeta { font-size: 11px; color: var(--ink-2); }

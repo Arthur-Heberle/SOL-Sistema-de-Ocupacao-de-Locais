@@ -1,155 +1,139 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { disponibilidadeService } from '../services/disponibilidadeService'
 import { projetoService } from '../services/projetoService'
 import { useAuth } from '../context/AuthContext'
 import type { HorarioDTO } from '../types'
+import { DIAS_SEMANA, DIAS_SEMANA_CURTO, HORAS_DISPONIBILIDADE } from '../utils/rotulos'
+import Button from './ui/Button'
+import styles from './HorariosLivresComponent.module.css'
 
 interface Props {
   idProjeto: number
 }
 
-const DIAS = ['SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA']
-const DIAS_LABEL = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex']
-const HORAS = ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00']
+const chave = (dia: string, hora: string) => `${dia}|${hora}`
+const horaFim = (hora: string) => `${String(Number(hora.slice(0, 2)) + 1).padStart(2, '0')}:00`
+const rotuloSlot = (key: string) => {
+  const [dia, hora] = key.split('|')
+  return `${DIAS_SEMANA_CURTO[DIAS_SEMANA.indexOf(dia as typeof DIAS_SEMANA[number])]} ${hora}`
+}
 
-function slotBg(count: number, total: number): string {
-  if (total === 0 || count === 0) return '#f5f5f5'
+/** 0 = nobody, 1..5 = sequential intensity buckets by share of selected members. */
+function nivel(count: number, total: number): number {
+  if (total === 0 || count === 0) return 0
   const r = count / total
-  if (r >= 1.0) return '#1a7a3a'
-  if (r >= 0.75) return '#4caf50'
-  if (r >= 0.5) return '#8bc34a'
-  if (r >= 0.25) return '#cddc39'
-  return '#f9fbe7'
+  if (r >= 1) return 5
+  if (r >= 0.75) return 4
+  if (r >= 0.5) return 3
+  if (r >= 0.25) return 2
+  return 1
 }
 
-function slotFg(count: number, total: number): string {
-  if (total === 0 || count === 0) return '#bbb'
-  return count / total >= 0.5 ? '#fff' : '#555'
-}
-
-const cellBase: React.CSSProperties = {
-  border: '1px solid #ddd',
-  padding: '5px 0',
-  textAlign: 'center',
-  minWidth: 72,
-  fontSize: 11,
+function primeiroNome(nome: string) {
+  return nome.replace(/^Prof\.\s*/, '').split(' ')[0]
 }
 
 export default function HorariosLivresComponent({ idProjeto }: Props) {
   const { idUsuario } = useAuth()
   const membros = projetoService.membros(idProjeto)
+  const souMembro = membros.some(m => m.idUsuario === idUsuario)
 
-  // ── My availability ──────────────────────────────────────
-  const [meusSlotsStr, setMeusSlotsStr] = useState<Set<string>>(new Set())
-  const [salvo, setSalvo] = useState(false)
+  // My availability
+  const [meus, setMeus] = useState<Set<string>>(() =>
+    new Set(idUsuario ? disponibilidadeService.carregar(idUsuario, idProjeto).map(h => chave(h.diaSemana, h.horaInicio)) : []),
+  )
+  const [estado, setEstado] = useState<'limpo' | 'alterado' | 'salvo'>('limpo')
+  const [versao, setVersao] = useState(0)
 
-  useEffect(() => {
-    if (!idUsuario) return
-    const horarios = disponibilidadeService.carregar(idUsuario, idProjeto)
-    setMeusSlotsStr(new Set(horarios.map(h => `${h.diaSemana}|${h.horaInicio}`)))
-  }, [idProjeto, idUsuario])
-
-  const toggleMeuSlot = (dia: string, hora: string) => {
-    const key = `${dia}|${hora}`
-    setMeusSlotsStr(prev => {
+  const alternar = (key: string) => {
+    setMeus(prev => {
       const next = new Set(prev)
-      next.has(key) ? next.delete(key) : next.add(key)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
+    setEstado('alterado')
   }
 
   const salvar = () => {
     if (!idUsuario) return
-    const horarios: HorarioDTO[] = Array.from(meusSlotsStr).map(key => {
+    const horarios: HorarioDTO[] = [...meus].map(key => {
       const [diaSemana, horaInicio] = key.split('|')
-      const [hh] = horaInicio.split(':').map(Number)
-      return { diaSemana, horaInicio, horaFim: `${String(hh + 1).padStart(2, '0')}:00` }
+      return { diaSemana, horaInicio, horaFim: horaFim(horaInicio) }
     })
     disponibilidadeService.salvar(idUsuario, idProjeto, horarios)
-    setSalvo(true)
-    setTimeout(() => setSalvo(false), 2000)
+    setEstado('salvo')
+    setVersao(v => v + 1)
   }
 
-  // ── Group filter ─────────────────────────────────────────
+  // Group heatmap
   const [filtro, setFiltro] = useState<Set<number>>(() => new Set(membros.map(m => m.idUsuario)))
+  const alternarMembro = (id: number) =>
+    setFiltro(prev => {
+      const n = new Set(prev)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
 
-  const toggleMembro = (id: number) =>
-    setFiltro(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
-
-  const selecionarTodos = () => setFiltro(new Set(membros.map(m => m.idUsuario)))
-  const desmarcarTodos = () => setFiltro(new Set())
-
-  // ── Heatmap computation ───────────────────────────────────
-  const contagens = useMemo(() => {
-    const mapa = new Map<string, number>()
-    disponibilidadeService
-      .todos(idProjeto)
-      .filter(d => filtro.has(d.idUsuario))
-      .forEach(d =>
-        d.horarios.forEach(h => {
-          const key = `${h.diaSemana}|${h.horaInicio}`
-          mapa.set(key, (mapa.get(key) ?? 0) + 1)
-        })
-      )
+  const livresPorSlot = useMemo(() => {
+    void versao
+    const mapa = new Map<string, number[]>()
+    for (const d of disponibilidadeService.todos(idProjeto)) {
+      if (!filtro.has(d.idUsuario)) continue
+      for (const h of d.horarios) {
+        const k = chave(h.diaSemana, h.horaInicio)
+        mapa.set(k, [...(mapa.get(k) ?? []), d.idUsuario])
+      }
+    }
     return mapa
-  }, [idProjeto, filtro])
+  }, [idProjeto, filtro, versao])
 
-  const totalFiltrado = filtro.size
-  const maxContagem = totalFiltrado > 0 ? Math.max(0, ...Array.from(contagens.values())) : 0
+  const total = filtro.size
+  const max = Math.max(0, ...[...livresPorSlot.values()].map(v => v.length))
+  const melhores = max === 0 ? [] : [...livresPorSlot.entries()]
+    .filter(([, ids]) => ids.length === max)
+    .map(([k]) => k)
+    .sort((a, b) => {
+      const [da, ha] = a.split('|')
+      const [db, hb] = b.split('|')
+      return DIAS_SEMANA.indexOf(da as typeof DIAS_SEMANA[number]) - DIAS_SEMANA.indexOf(db as typeof DIAS_SEMANA[number]) || ha.localeCompare(hb)
+    })
+  const nomeDe = (id: number) => membros.find(m => m.idUsuario === id)?.nomeUsuario ?? `#${id}`
 
-  const melhoresHorarios = useMemo(() => {
-    if (maxContagem === 0) return []
-    return Array.from(contagens.entries())
-      .filter(([, c]) => c === maxContagem)
-      .sort(([a], [b]) => {
-        const [diaA, horaA] = a.split('|')
-        const [diaB, horaB] = b.split('|')
-        const diaOrd = DIAS.indexOf(diaA) - DIAS.indexOf(diaB)
-        return diaOrd !== 0 ? diaOrd : horaA.localeCompare(horaB)
-      })
-      .map(([key]) => {
-        const [dia, hora] = key.split('|')
-        return `${DIAS_LABEL[DIAS.indexOf(dia)]} ${hora}`
-      })
-  }, [contagens, maxContagem])
-
-  // ── Render ────────────────────────────────────────────────
   return (
-    <div>
-      {/* ── Seção 1: Minha disponibilidade ── */}
-      <div style={{ marginBottom: 28 }}>
-        <h3 style={{ fontSize: 14, marginBottom: 6, color: '#333' }}>Minha Disponibilidade</h3>
-        <p style={{ fontSize: 12, color: '#666', marginBottom: 10 }}>
-          Clique nas células para marcar os horários em que você está livre.
-        </p>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ borderCollapse: 'collapse', fontSize: 12 }}>
+    <div className={styles.layout}>
+      {souMembro && (
+        <section className={styles.painel} aria-labelledby="minha-disp">
+          <header className={styles.painelHead}>
+            <div>
+              <h3 id="minha-disp">Minha disponibilidade</h3>
+              <p>Clique nos horários em que você está livre.</p>
+            </div>
+          </header>
+          <table className={styles.grade}>
             <thead>
-              <tr style={{ background: '#f0f0f0' }}>
-                <th style={{ border: '1px solid #ddd', padding: '6px 10px' }}>Hora</th>
-                {DIAS_LABEL.map(d => (
-                  <th key={d} style={{ border: '1px solid #ddd', padding: '6px 22px' }}>{d}</th>
-                ))}
+              <tr>
+                <th><span className="visually-hidden">Hora</span></th>
+                {DIAS_SEMANA_CURTO.map(d => <th key={d} scope="col">{d}</th>)}
               </tr>
             </thead>
             <tbody>
-              {HORAS.map(hora => (
+              {HORAS_DISPONIBILIDADE.map(hora => (
                 <tr key={hora}>
-                  <td style={{ border: '1px solid #ddd', padding: '4px 10px', fontWeight: 600 }}>{hora}</td>
-                  {DIAS.map(dia => {
-                    const sel = meusSlotsStr.has(`${dia}|${hora}`)
+                  <th scope="row">{hora}</th>
+                  {DIAS_SEMANA.map((dia, i) => {
+                    const k = chave(dia, hora)
+                    const sel = meus.has(k)
                     return (
-                      <td
-                        key={dia}
-                        onClick={() => toggleMeuSlot(dia, hora)}
-                        style={{
-                          border: '1px solid #ddd', padding: '6px 22px',
-                          cursor: 'pointer', textAlign: 'center',
-                          background: sel ? '#4caf50' : '#fafafa',
-                          color: sel ? '#fff' : '',
-                        }}
-                      >
-                        {sel ? '✓' : ''}
+                      <td key={dia}>
+                        <button
+                          type="button"
+                          className={styles.toggle}
+                          aria-pressed={sel}
+                          aria-label={`${DIAS_SEMANA_CURTO[i]} ${hora}: ${sel ? 'livre' : 'ocupado'}`}
+                          onClick={() => alternar(k)}
+                        />
                       </td>
                     )
                   })}
@@ -157,127 +141,102 @@ export default function HorariosLivresComponent({ idProjeto }: Props) {
               ))}
             </tbody>
           </table>
-        </div>
-        <div style={{ marginTop: 10, display: 'flex', gap: 12, alignItems: 'center' }}>
-          <button
-            onClick={salvar}
-            style={{ padding: '7px 18px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-          >
-            Salvar Horários
-          </button>
-          {salvo && <span style={{ color: '#5cb85c', fontSize: 13 }}>Salvo!</span>}
-        </div>
-      </div>
-
-      {/* ── Seção 2: Disponibilidade do grupo ── */}
-      <div>
-        <h3 style={{ fontSize: 14, marginBottom: 8, color: '#333' }}>Disponibilidade do Grupo</h3>
-
-        {/* Filtro de integrantes */}
-        <div style={{ marginBottom: 12, padding: '10px 14px', background: '#f8f8f8', border: '1px solid #e0e0e0', borderRadius: 6 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
-              Integrantes ({filtro.size}/{membros.length} selecionado{filtro.size !== 1 ? 's' : ''}):
+          <footer className={styles.painelFoot}>
+            <span className={styles.status} aria-live="polite">
+              {estado === 'alterado' && 'Alterações não salvas'}
+              {estado === 'salvo' && 'Horários salvos'}
+              {estado === 'limpo' && `${meus.size} ${meus.size === 1 ? 'horário marcado' : 'horários marcados'}`}
             </span>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={selecionarTodos} style={{ fontSize: 11, padding: '2px 8px', cursor: 'pointer' }}>Todos</button>
-              <button onClick={desmarcarTodos} style={{ fontSize: 11, padding: '2px 8px', cursor: 'pointer' }}>Nenhum</button>
-            </div>
+            <Button size="sm" onClick={salvar} disabled={estado !== 'alterado'}>Salvar horários</Button>
+          </footer>
+        </section>
+      )}
+
+      <section className={`${styles.painel} ${styles.grupo}`} aria-labelledby="disp-grupo">
+        <header className={styles.painelHead}>
+          <div>
+            <h3 id="disp-grupo">Disponibilidade do grupo</h3>
+            <p>Quanto mais escuro, mais integrantes livres no horário.</p>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 20px' }}>
-            {membros.map(m => (
-              <label key={m.idUsuario} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', userSelect: 'none' }}>
-                <input
-                  type="checkbox"
-                  checked={filtro.has(m.idUsuario)}
-                  onChange={() => toggleMembro(m.idUsuario)}
-                />
-                {m.nomeUsuario}
-                {m.isGestor && <span style={{ fontSize: 10, color: '#888', fontStyle: 'italic' }}>gestor</span>}
-              </label>
-            ))}
+          <div className={styles.headActions}>
+            <Button size="sm" variant="ghost" onClick={() => setFiltro(new Set(membros.map(m => m.idUsuario)))}>Todos</Button>
+            <Button size="sm" variant="ghost" onClick={() => setFiltro(new Set())}>Nenhum</Button>
           </div>
+        </header>
+
+        <div className={styles.chips} role="group" aria-label="Integrantes considerados">
+          {membros.map(m => (
+            <button
+              key={m.idUsuario}
+              type="button"
+              className={styles.chip}
+              aria-pressed={filtro.has(m.idUsuario)}
+              onClick={() => alternarMembro(m.idUsuario)}
+            >
+              {m.nomeUsuario}
+              {m.isGestor && <span className={styles.chipTag}>gestor</span>}
+            </button>
+          ))}
         </div>
 
-        {/* Melhor horário */}
-        {totalFiltrado === 0 ? (
-          <p style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>Selecione ao menos um integrante para ver a disponibilidade.</p>
-        ) : maxContagem === 0 ? (
-          <div style={{ marginBottom: 12, padding: '8px 12px', background: '#fff3cd', border: '1px solid #f0ad4e', borderRadius: 4, fontSize: 13, color: '#856404' }}>
-            Nenhum dos integrantes selecionados registrou horários livres ainda.
-          </div>
+        {total === 0 ? (
+          <p className={styles.aviso}>Selecione ao menos um integrante para calcular a disponibilidade.</p>
+        ) : max === 0 ? (
+          <p className={styles.aviso}>Nenhum dos integrantes selecionados registrou horários livres.</p>
         ) : (
-          <div style={{ marginBottom: 12, padding: '8px 12px', background: '#e8f5e9', border: '1px solid #c8e6c9', borderRadius: 4, fontSize: 13 }}>
-            <strong>Melhor horário</strong> — {maxContagem} de {totalFiltrado} integrante{totalFiltrado !== 1 ? 's' : ''} livres:{' '}
-            <span style={{ color: '#1a7a3a', fontWeight: 600 }}>
-              {melhoresHorarios.slice(0, 6).join(', ')}
-              {melhoresHorarios.length > 6 && ` +${melhoresHorarios.length - 6} mais`}
+          <div className={styles.melhor}>
+            <span className={styles.melhorLabel}>
+              {max === total ? 'Todos livres' : `${max} de ${total} livres`}
+            </span>
+            <span className={styles.melhorSlots}>
+              {melhores.slice(0, 6).map(k => <span key={k}>{rotuloSlot(k)}</span>)}
+              {melhores.length > 6 && <span className={styles.maisSlots}>+{melhores.length - 6}</span>}
             </span>
           </div>
         )}
 
-        {/* Legenda */}
-        {totalFiltrado > 0 && (
-          <div style={{ display: 'flex', gap: 10, marginBottom: 8, fontSize: 11, color: '#666', alignItems: 'center', flexWrap: 'wrap' }}>
-            <span>Legenda:</span>
-            {[
-              { label: 'Nenhum', r: 0 },
-              { label: '1–24%', r: 0.12 },
-              { label: '25–49%', r: 0.37 },
-              { label: '50–74%', r: 0.62 },
-              { label: '75–99%', r: 0.87 },
-              { label: 'Todos', r: 1 },
-            ].map(({ label, r }) => (
-              <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                <span style={{ width: 14, height: 14, display: 'inline-block', background: slotBg(r * 4, 4), border: '1px solid #ccc', borderRadius: 2 }} />
-                {label}
-              </span>
+        <table className={`${styles.grade} ${styles.heat}`}>
+          <thead>
+            <tr>
+              <th><span className="visually-hidden">Hora</span></th>
+              {DIAS_SEMANA_CURTO.map(d => <th key={d} scope="col">{d}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {HORAS_DISPONIBILIDADE.map(hora => (
+              <tr key={hora}>
+                <th scope="row">{hora}</th>
+                {DIAS_SEMANA.map(dia => {
+                  const ids = livresPorSlot.get(chave(dia, hora)) ?? []
+                  const n = ids.length
+                  const melhor = n > 0 && n === max
+                  const nomes = ids.map(i => primeiroNome(nomeDe(i))).join(', ')
+                  return (
+                    <td key={dia}>
+                      <span
+                        className={`${styles.cell} ${melhor ? styles.best : ''}`}
+                        data-nivel={nivel(n, total)}
+                        title={n > 0 ? `${n} de ${total} livres: ${nomes}` : 'Ninguém livre'}
+                      >
+                        {n > 0 ? `${n}/${total}` : ''}
+                      </span>
+                    </td>
+                  )
+                })}
+              </tr>
             ))}
-          </div>
-        )}
+          </tbody>
+        </table>
 
-        {/* Heatmap */}
-        {totalFiltrado > 0 && (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ borderCollapse: 'collapse', fontSize: 12 }}>
-              <thead>
-                <tr style={{ background: '#f0f0f0' }}>
-                  <th style={{ border: '1px solid #ddd', padding: '6px 10px' }}>Hora</th>
-                  {DIAS_LABEL.map(d => (
-                    <th key={d} style={{ border: '1px solid #ddd', padding: '6px 0', minWidth: 72, textAlign: 'center' }}>{d}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {HORAS.map(hora => (
-                  <tr key={hora}>
-                    <td style={{ border: '1px solid #ddd', padding: '4px 10px', fontWeight: 600 }}>{hora}</td>
-                    {DIAS.map(dia => {
-                      const count = contagens.get(`${dia}|${hora}`) ?? 0
-                      const isMelhor = count > 0 && count === maxContagem
-                      return (
-                        <td
-                          key={dia}
-                          style={{
-                            ...cellBase,
-                            background: slotBg(count, totalFiltrado),
-                            color: slotFg(count, totalFiltrado),
-                            border: isMelhor ? '2px solid #1a7a3a' : '1px solid #ddd',
-                            fontWeight: isMelhor ? 700 : 400,
-                          }}
-                          title={count > 0 ? `${count} de ${totalFiltrado} livres` : 'Nenhum livre'}
-                        >
-                          {count > 0 ? `${count}/${totalFiltrado}` : ''}
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {total > 0 && (
+          <div className={styles.legenda} aria-label="Legenda">
+            <span>Menos</span>
+            {[0, 1, 2, 3, 4, 5].map(l => <span key={l} className={styles.cell} data-nivel={l} />)}
+            <span>Todos</span>
+            <span className={styles.legendaBest}><span className={`${styles.cell} ${styles.best}`} data-nivel={5} /> Melhor horário</span>
           </div>
         )}
-      </div>
+      </section>
     </div>
   )
 }

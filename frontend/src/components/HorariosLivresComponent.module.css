@@ -1,0 +1,133 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 20px;
+  align-items: start;
+}
+.layout:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
+
+.painel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.grupo { background: color-mix(in srgb, var(--surface-2) 40%, var(--surface)); }
+.painelHead { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.painelHead h3 { font-size: 14px; }
+.painelHead p { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
+.headActions { display: flex; gap: 2px; }
+.painelFoot { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.status { font-size: 12.5px; color: var(--ink-3); }
+
+/* Shared grid */
+.grade { table-layout: fixed; border-collapse: separate; border-spacing: 4px; margin: -4px; width: calc(100% + 8px); }
+.grade thead th { font-size: 11.5px; font-weight: 500; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; padding-bottom: 2px; }
+.grade tbody th {
+  width: 46px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-3);
+  text-align: right;
+  padding-right: 4px;
+}
+.grade td { padding: 0; }
+
+/* Personal toggles */
+.toggle {
+  display: block;
+  width: 100%;
+  height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+  transition: background-color 0.1s, border-color 0.1s;
+}
+.toggle:hover { border-color: var(--ok); }
+.toggle[aria-pressed='true'] {
+  background: var(--ok);
+  border-color: var(--ok);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 14px;
+}
+
+/* Member chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12.5px;
+  color: var(--ink-3);
+  text-decoration: line-through;
+  text-decoration-color: var(--line-strong);
+}
+.chip[aria-pressed='true'] {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
+  text-decoration: none;
+}
+.chipTag { font-size: 10.5px; opacity: 0.7; }
+
+/* Best slot callout */
+.melhor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+}
+.melhorLabel { font-size: 12.5px; font-weight: 600; color: var(--accent-ink); }
+.melhorSlots { display: flex; flex-wrap: wrap; gap: 6px; }
+.melhorSlots > span {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.maisSlots { color: var(--ink-3); }
+.aviso { font-size: 13px; color: var(--ink-3); }
+
+/* Heatmap cells: single-hue sequential green ramp */
+.cell {
+  display: grid;
+  place-items: center;
+  height: 30px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.cell[data-nivel='0'] { background: var(--surface-3); }
+.cell[data-nivel='1'] { background: #d5ebdc; }
+.cell[data-nivel='2'] { background: #a6d4b5; }
+.cell[data-nivel='3'] { background: #5fb07d; color: #fff; }
+.cell[data-nivel='4'] { background: #2a8a55; color: #fff; }
+.cell[data-nivel='5'] { background: #145c36; color: #fff; }
+.best { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); font-weight: 700; }
+
+.legenda { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--ink-3); flex-wrap: wrap; }
+.legenda > .cell { width: 18px; height: 14px; border-radius: 3px; }
+.legendaBest { display: inline-flex; align-items: center; gap: 8px; margin-left: 16px; }
+.legendaBest .cell { width: 14px; height: 14px; border-radius: 3px; }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+}

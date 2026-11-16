@@ -32,12 +32,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = (token: string, nome: string, tipoUsuario: TipoUsuario, idUsuario: number) => {
     const state = { token, nome, tipoUsuario, idUsuario }
-    localStorage.setItem(AUTH_KEY, JSON.stringify(state))
+    try { localStorage.setItem(AUTH_KEY, JSON.stringify(state)) } catch { /* storage unavailable */ }
     setAuth(state)
   }
 
   const logout = () => {
-    localStorage.removeItem(AUTH_KEY)
+    try { localStorage.removeItem(AUTH_KEY) } catch { /* storage unavailable */ }
     setAuth({ token: null, nome: null, tipoUsuario: null, idUsuario: null })
   }
 
@@ -48,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth must be used inside AuthProvider')

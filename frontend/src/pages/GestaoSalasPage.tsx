@@ -1,6 +1,16 @@
 import { useState } from 'react'
 import type { SalaDTO, TipoSala } from '../types'
 import { salaService } from '../services/salaService'
+import { TIPO_SALA_LABEL } from '../utils/rotulos'
+import PageHeader from '../components/ui/PageHeader'
+import Card from '../components/ui/Card'
+import Field from '../components/ui/Field'
+import Checkbox from '../components/ui/Checkbox'
+import Button from '../components/ui/Button'
+import Badge from '../components/ui/Badge'
+import Alert from '../components/ui/Alert'
+import Table from '../components/ui/Table'
+import styles from './Gestao.module.css'
 
 const TIPOS_SALA: TipoSala[] = ['AULA', 'LABORATORIO', 'PROJETO', 'DEPARTAMENTO']
 
@@ -17,80 +27,90 @@ export default function GestaoSalasPage() {
 
   const recarregar = () => setSalas(salaService.listar())
 
+  const fechar = () => {
+    setMostraForm(false); setErro('')
+    setBloco(''); setCodigoNome(''); setTipoSala('AULA'); setCapacidade(''); setPossuiProjetor(false); setPermiteReserva(true)
+  }
+
   const criar = (e: React.FormEvent) => {
     e.preventDefault()
     setErro('')
     if (!bloco.trim() || !codigoNome.trim() || !capacidade) { setErro('Preencha todos os campos obrigatórios.'); return }
     salaService.criar({ bloco: bloco.trim().toUpperCase(), codigoNome: codigoNome.trim().toUpperCase(), tipoSala, capacidade: Number(capacidade), possuiProjetor, permiteReserva })
     recarregar()
-    setMostraForm(false)
-    setBloco(''); setCodigoNome(''); setTipoSala('AULA'); setCapacidade(''); setPossuiProjetor(false); setPermiteReserva(true)
+    fechar()
   }
 
   return (
     <main>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h1>Gestão de Salas</h1>
-        <button onClick={() => setMostraForm(!mostraForm)} style={{ padding: '8px 16px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
-          {mostraForm ? 'Cancelar' : '+ Nova Sala'}
-        </button>
-      </div>
+      <PageHeader
+        title="Gestão de salas"
+        subtitle="Cadastre e organize os locais disponíveis no campus."
+        actions={!mostraForm && <Button onClick={() => setMostraForm(true)}>Nova sala</Button>}
+      />
       {mostraForm && (
-        <form onSubmit={criar} style={{ background: '#f9f9f9', padding: 16, borderRadius: 6, marginBottom: 20, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <label style={{ fontSize: 13 }}>Bloco *<br /><input value={bloco} onChange={e => setBloco(e.target.value)} style={{ padding: 7, width: 80 }} placeholder="CB" /></label>
-          <label style={{ fontSize: 13 }}>Código *<br /><input value={codigoNome} onChange={e => setCodigoNome(e.target.value)} style={{ padding: 7, width: 120 }} placeholder="CB-010" /></label>
-          <label style={{ fontSize: 13 }}>Tipo<br />
-            <select value={tipoSala} onChange={e => setTipoSala(e.target.value as TipoSala)} style={{ padding: 7 }}>
-              {TIPOS_SALA.map(t => <option key={t}>{t}</option>)}
-            </select>
-          </label>
-          <label style={{ fontSize: 13 }}>Capacidade *<br /><input type="number" value={capacidade} onChange={e => setCapacidade(e.target.value)} style={{ padding: 7, width: 80 }} min="1" /></label>
-          <label style={{ fontSize: 13, display: 'flex', alignItems: 'flex-end', gap: 6 }}>
-            <input type="checkbox" checked={possuiProjetor} onChange={e => setPossuiProjetor(e.target.checked)} />
-            Projetor
-          </label>
-          <label style={{ fontSize: 13, display: 'flex', alignItems: 'flex-end', gap: 6 }}>
-            <input type="checkbox" checked={permiteReserva} onChange={e => setPermiteReserva(e.target.checked)} />
-            Permite reserva
-          </label>
-          <button type="submit" style={{ padding: '7px 16px', background: '#5cb85c', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>Salvar</button>
-          {erro && <span style={{ color: '#d9534f', fontSize: 12 }}>{erro}</span>}
-        </form>
+        <Card title="Nova sala" className={styles.formCard}>
+          <form onSubmit={criar}>
+            <div className={styles.formGrid}>
+              <Field label="Bloco" required>
+                <input value={bloco} onChange={e => setBloco(e.target.value)} placeholder="CB" />
+              </Field>
+              <Field label="Código" required>
+                <input value={codigoNome} onChange={e => setCodigoNome(e.target.value)} placeholder="CB-010" />
+              </Field>
+              <Field label="Tipo">
+                <select value={tipoSala} onChange={e => setTipoSala(e.target.value as TipoSala)}>
+                  {TIPOS_SALA.map(t => <option key={t} value={t}>{TIPO_SALA_LABEL[t]}</option>)}
+                </select>
+              </Field>
+              <Field label="Capacidade" required>
+                <input type="number" min="1" value={capacidade} onChange={e => setCapacidade(e.target.value)} />
+              </Field>
+              <div className={styles.checks}>
+                <Checkbox checked={possuiProjetor} onChange={setPossuiProjetor} label="Possui projetor" />
+                <Checkbox checked={permiteReserva} onChange={setPermiteReserva} label="Permite reserva" />
+              </div>
+            </div>
+            {erro && <div className={styles.erro}><Alert tone="danger">{erro}</Alert></div>}
+            <div className={styles.formFooter}>
+              <Button type="submit">Salvar</Button>
+              <Button variant="secondary" onClick={fechar}>Cancelar</Button>
+            </div>
+          </form>
+        </Card>
       )}
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-        <thead>
-          <tr style={{ background: '#1a1a2e', color: '#fff' }}>
-            <th style={{ padding: '10px 12px', textAlign: 'left' }}>Código</th>
-            <th style={{ padding: '10px 12px' }}>Bloco</th>
-            <th style={{ padding: '10px 12px' }}>Tipo</th>
-            <th style={{ padding: '10px 12px' }}>Cap.</th>
-            <th style={{ padding: '10px 12px' }}>Projetor</th>
-            <th style={{ padding: '10px 12px' }}>Reservas</th>
-            <th style={{ padding: '10px 12px' }}>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {salas.map((s, i) => (
-            <tr key={s.id} style={{ background: i % 2 === 0 ? '#fff' : '#f9f9f9' }}>
-              <td style={{ border: '1px solid #eee', padding: '8px 12px' }}>{s.codigoNome}</td>
-              <td style={{ border: '1px solid #eee', padding: '8px 12px', textAlign: 'center' }}>{s.bloco}</td>
-              <td style={{ border: '1px solid #eee', padding: '8px 12px', textAlign: 'center' }}>{s.tipoSala}</td>
-              <td style={{ border: '1px solid #eee', padding: '8px 12px', textAlign: 'center' }}>{s.capacidade}</td>
-              <td style={{ border: '1px solid #eee', padding: '8px 12px', textAlign: 'center' }}>{s.possuiProjetor ? 'Sim' : 'Não'}</td>
-              <td style={{ border: '1px solid #eee', padding: '8px 12px', textAlign: 'center' }}>
-                <span style={{ background: s.permiteReserva ? '#d4edda' : '#f8d7da', color: s.permiteReserva ? '#155724' : '#721c24', padding: '2px 8px', borderRadius: 10, fontSize: 11 }}>
-                  {s.permiteReserva ? 'Sim' : 'Não'}
-                </span>
-              </td>
-              <td style={{ border: '1px solid #eee', padding: '8px 12px', textAlign: 'center' }}>
-                <button onClick={() => { salaService.excluir(s.id); recarregar() }} style={{ fontSize: 11, padding: '3px 10px', cursor: 'pointer', background: '#d9534f', color: '#fff', border: 'none', borderRadius: 3 }}>
-                  Excluir
-                </button>
-              </td>
+      <Card flush>
+        <Table caption="Salas cadastradas">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th data-align="center">Bloco</th>
+              <th data-align="center">Tipo</th>
+              <th data-align="center">Capacidade</th>
+              <th data-align="center">Projetor</th>
+              <th data-align="center">Reservas</th>
+              <th data-align="center">Ações</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {salas.map(s => (
+              <tr key={s.id}>
+                <td className={styles.mono}>{s.codigoNome}</td>
+                <td data-align="center">{s.bloco}</td>
+                <td data-align="center"><Badge tone="neutral">{TIPO_SALA_LABEL[s.tipoSala]}</Badge></td>
+                <td data-align="center">{s.capacidade}</td>
+                <td data-align="center">{s.possuiProjetor ? 'Sim' : 'Não'}</td>
+                <td data-align="center">
+                  <Badge tone={s.permiteReserva ? 'ok' : 'danger'} dot>{s.permiteReserva ? 'Permite' : 'Não permite'}</Badge>
+                </td>
+                <td data-align="center">
+                  <Button size="sm" variant="danger" onClick={() => { salaService.excluir(s.id); recarregar() }}>Excluir</Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </Card>
     </main>
   )
 }

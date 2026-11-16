@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import type { TipoUsuario } from '../types'
@@ -10,7 +11,7 @@ const ROLE_RANK: Record<TipoUsuario, number> = {
 }
 
 interface Props {
-  children: React.ReactElement
+  children: ReactElement
   minRole: TipoUsuario
 }
 

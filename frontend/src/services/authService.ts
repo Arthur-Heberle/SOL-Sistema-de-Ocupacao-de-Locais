@@ -1,13 +1,8 @@
 import type { TipoUsuario } from '../types'
 import { db } from './mockDB'
 
-const CREDENTIALS: Record<string, { senha: string; tipoUsuario: TipoUsuario }> = {
-  'gestor@utfpr.edu.br':   { senha: '123456', tipoUsuario: 'GESTOR' },
-  'ana@utfpr.edu.br':      { senha: '123456', tipoUsuario: 'PROFESSOR' },
-  'carlos@utfpr.edu.br':   { senha: '123456', tipoUsuario: 'TUTOR' },
-  'maria@utfpr.edu.br':    { senha: '123456', tipoUsuario: 'ALUNO' },
-  'joao@utfpr.edu.br':     { senha: '123456', tipoUsuario: 'ALUNO' },
-}
+/** Mock credential check: every seeded account uses the same demo password. */
+const SENHA_DEMO = '123456'
 
 export interface LoginResult {
   ok: boolean
@@ -19,13 +14,12 @@ export interface LoginResult {
 }
 
 export function login(email: string, senha: string): LoginResult {
-  const cred = CREDENTIALS[email.toLowerCase()]
-  if (!cred || cred.senha !== senha) {
+  const usuario = db.usuarios.all().find(u => u.email.toLowerCase() === email.trim().toLowerCase())
+  if (!usuario || senha !== SENHA_DEMO) {
     return { ok: false, erro: 'E-mail ou senha incorretos.' }
   }
-  const usuario = db.usuarios.all().find(u => u.email.toLowerCase() === email.toLowerCase())
-  if (!usuario || !usuario.ativo) {
-    return { ok: false, erro: 'Usuário inativo ou não encontrado.' }
+  if (!usuario.ativo) {
+    return { ok: false, erro: 'Usuário inativo. Procure o Gestor de Salas.' }
   }
   return {
     ok: true,

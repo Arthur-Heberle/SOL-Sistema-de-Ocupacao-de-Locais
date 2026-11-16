@@ -1,126 +1,162 @@
 import { useState } from 'react'
+import type { FormEvent } from 'react'
 import type { SalaDTO, Visibilidade } from '../types'
 import { useAuth } from '../context/AuthContext'
 import { reservaService } from '../services/reservaService'
-import { usuarioService } from '../services/usuarioService'
 import { projetoService } from '../services/projetoService'
+import { formatHora, hojeISO } from '../utils/datas'
+import { TIPO_SALA_LABEL } from '../utils/rotulos'
+import Modal from './ui/Modal'
+import Button from './ui/Button'
+import Field from './ui/Field'
+import Checkbox from './ui/Checkbox'
+import Alert from './ui/Alert'
+import Badge from './ui/Badge'
+import TimelineDiaComponent from './TimelineDiaComponent'
+import styles from './ModalReservaComponent.module.css'
 
 interface Props {
   sala: SalaDTO
-  aberto: boolean
+  dataInicial?: string
   onFechar: () => void
   onCriada: () => void
 }
 
-export default function ModalReservaComponent({ sala, aberto, onFechar, onCriada }: Props) {
-  const { nome, idUsuario } = useAuth()
-  const hoje = new Date().toISOString().split('T')[0]
+export default function ModalReservaComponent({ sala, dataInicial, onFechar, onCriada }: Props) {
+  const { idUsuario } = useAuth()
+  const formId = `form-reserva-${sala.id}`
 
   const [titulo, setTitulo] = useState('')
   const [visibilidade, setVisibilidade] = useState<Visibilidade>('PUBLICA')
-  const [data, setData] = useState(hoje)
+  const [data, setData] = useState(dataInicial ?? hojeISO())
   const [horaInicio, setHoraInicio] = useState('08:00')
   const [horaFim, setHoraFim] = useState('10:00')
   const [recorrente, setRecorrente] = useState(false)
   const [erro, setErro] = useState('')
-  const [sucesso, setSucesso] = useState('')
+  const [resultado, setResultado] = useState<'APROVADA' | 'PENDENTE' | null>(null)
 
-  if (!aberto) return null
+  const reservasDoDia = reservaService.doDia(sala.id, data)
+  const conflito = reservasDoDia.some(r => horaInicio < formatHora(r.dataFim) && horaFim > formatHora(r.dataInicio))
+  const membroDoProjeto = idUsuario !== null && projetoService.isMembroDaSala(idUsuario, sala.id)
+  const motivoAprovacao =
+    sala.tipoSala === 'PROJETO' && !membroDoProjeto ? 'Salas de projeto exigem aprovação do Gestor para quem não é membro.'
+    : recorrente ? 'Reservas semanais (semestrais) exigem aprovação do Gestor.'
+    : conflito ? 'O horário escolhido conflita com uma reserva existente; o Gestor irá analisar.'
+    : null
 
-  const isMembroDoProjeto = sala.tipoSala === 'PROJETO' && !!idUsuario &&
-    projetoService.isMembroDaSala(idUsuario, sala.id)
-
-  const precisaAprovacao = (sala.tipoSala === 'PROJETO' && !isMembroDoProjeto) || recorrente
-
-  const confirmar = () => {
+  const confirmar = (e: FormEvent) => {
+    e.preventDefault()
     setErro('')
-    if (!titulo.trim()) { setErro('Informe um título.'); return }
-    if (horaFim <= horaInicio) { setErro('Horário de fim deve ser após o início.'); return }
-    const usuario = usuarioService.listar().find(u => u.nome === nome)
+    if (!titulo.trim()) { setErro('Informe o título da atividade.'); return }
+    if (horaFim <= horaInicio) { setErro('O horário de término deve ser após o início.'); return }
+    if (idUsuario === null) { setErro('Sessão expirada. Entre novamente.'); return }
     try {
-      reservaService.criar({
+      const nova = reservaService.criar({
         idSala: sala.id,
-        idUsuario: usuario?.id ?? 0,
+        idUsuario,
         titulo: titulo.trim(),
         visibilidade,
         dataInicio: `${data}T${horaInicio}`,
         dataFim: `${data}T${horaFim}`,
         recorrente,
       })
-    } catch (e) {
-      setErro(e instanceof Error ? e.message : 'Erro ao criar reserva.')
-      return
+      setResultado(nova.status === 'APROVADA' ? 'APROVADA' : 'PENDENTE')
+      onCriada()
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : 'Não foi possível criar a reserva.')
     }
-    setSucesso(precisaAprovacao
-      ? 'Solicitação enviada! Aguardando aprovação do Gestor.'
-      : 'Sala reservada com sucesso!')
-    setTimeout(() => { setSucesso(''); onCriada(); onFechar() }, 1800)
   }
 
-  const inputStyle: React.CSSProperties = { width: '100%', padding: '7px 8px', boxSizing: 'border-box' }
+  const subtitle = (
+    <span className={styles.meta}>
+      <Badge tone="neutral">{TIPO_SALA_LABEL[sala.tipoSala]}</Badge>
+      <span>Bloco {sala.bloco}</span>
+      <span>{sala.capacidade} lugares</span>
+      {sala.possuiProjetor && <span>Projetor</span>}
+    </span>
+  )
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-      <div style={{ background: '#fff', borderRadius: 8, padding: 24, minWidth: 360, maxWidth: 460, width: '90%' }}>
-        <h2 style={{ marginBottom: 4 }}>Reservar {sala.codigoNome}</h2>
-        <p style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>
-          {sala.tipoSala} · Cap. {sala.capacidade}{sala.possuiProjetor ? ' · Projetor ✓' : ''}
-        </p>
+    <Modal
+      open
+      onClose={onFechar}
+      title={`Reservar ${sala.codigoNome}`}
+      subtitle={subtitle}
+      footer={resultado ? (
+        <Button onClick={onFechar}>Concluir</Button>
+      ) : (
+        <>
+          <Button variant="secondary" onClick={onFechar}>Cancelar</Button>
+          <Button type="submit" form={formId}>{motivoAprovacao ? 'Enviar solicitação' : 'Confirmar reserva'}</Button>
+        </>
+      )}
+    >
+      {resultado === 'APROVADA' && (
+        <Alert tone="ok" title="Reserva confirmada">
+          {titulo} em {sala.codigoNome}, {data.split('-').reverse().join('/')} das {horaInicio} às {horaFim}.
+        </Alert>
+      )}
+      {resultado === 'PENDENTE' && (
+        <Alert tone="warn" title="Solicitação enviada">
+          Sua solicitação foi registrada e aguarda aprovação do Gestor de Salas. Acompanhe em Solicitações.
+        </Alert>
+      )}
+      {!resultado && <form id={formId} className={styles.form} onSubmit={confirmar} noValidate>
+        <Field label="Título da atividade" required>
+          <input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Ex.: Aula de Cálculo Numérico" autoFocus />
+        </Field>
 
-        {precisaAprovacao && (
-          <div style={{ background: '#fff3cd', border: '1px solid #f0ad4e', padding: '8px 12px', borderRadius: 4, marginBottom: 12, fontSize: 13 }}>
-            ⚠️ {sala.tipoSala === 'PROJETO' && !isMembroDoProjeto
-              ? 'Sala de projeto — reserva ficará pendente até aprovação do Gestor.'
-              : 'Reserva semestral (recorrente) — ficará pendente até aprovação do Gestor.'}
+        <div className={styles.row}>
+          <Field label="Data" className={styles.wide}>
+            <input type="date" value={data} onChange={e => setData(e.target.value)} />
+          </Field>
+          <Field label="Início">
+            <input type="time" value={horaInicio} step={900} onChange={e => setHoraInicio(e.target.value)} />
+          </Field>
+          <Field label="Término">
+            <input type="time" value={horaFim} step={900} onChange={e => setHoraFim(e.target.value)} />
+          </Field>
+        </div>
+
+        <div className={styles.ocupacao}>
+          <div className={styles.ocupacaoHead}>
+            <span>Ocupação no dia</span>
+            <span className={styles.legenda}>
+              <i className={styles.lgBusy} /> Reservado <i className={styles.lgSel} /> Seu horário
+            </span>
           </div>
-        )}
-
-        <div style={{ marginBottom: 10 }}>
-          <label style={{ fontSize: 13 }}>
-            Título<br />
-            <input value={titulo} onChange={e => setTitulo(e.target.value)} style={inputStyle} placeholder="Ex: Aula de Cálculo" />
-          </label>
+          <TimelineDiaComponent reservas={reservasDoDia} destaque={{ inicio: horaInicio, fim: horaFim }} />
+          {reservasDoDia.length > 0 && (
+            <ul className={styles.lista}>
+              {reservasDoDia.map(r => (
+                <li key={r.id}>
+                  <span className={styles.hora}>{formatHora(r.dataInicio)}–{formatHora(r.dataFim)}</span>
+                  {r.visibilidade === 'PUBLICA' || r.idUsuario === idUsuario ? r.titulo : 'Atividade privada'}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-          <label style={{ fontSize: 13, flex: '2 1 0' }}>
-            Data<br />
-            <input type="date" value={data} onChange={e => setData(e.target.value)} style={inputStyle} />
-          </label>
-          <label style={{ fontSize: 13, flex: '1 1 0' }}>
-            Início<br />
-            <input type="time" value={horaInicio} onChange={e => setHoraInicio(e.target.value)} style={inputStyle} />
-          </label>
-          <label style={{ fontSize: 13, flex: '1 1 0' }}>
-            Fim<br />
-            <input type="time" value={horaFim} onChange={e => setHoraFim(e.target.value)} style={inputStyle} />
-          </label>
-        </div>
-
-        <div style={{ display: 'flex', gap: 16, marginBottom: 10, fontSize: 13 }}>
-          <label>
-            Visibilidade:<br />
-            <select value={visibilidade} onChange={e => setVisibilidade(e.target.value as Visibilidade)} style={{ padding: '6px 8px' }}>
-              <option value="PUBLICA">Pública</option>
-              <option value="PRIVADA">Privada</option>
+        <div className={styles.row}>
+          <Field label="Visibilidade" className={styles.wide}>
+            <select value={visibilidade} onChange={e => setVisibilidade(e.target.value as Visibilidade)}>
+              <option value="PUBLICA">Pública, visível a todos</option>
+              <option value="PRIVADA">Privada, só eu e o Gestor</option>
             </select>
-          </label>
-          <label style={{ display: 'flex', alignItems: 'flex-end', gap: 6, paddingBottom: 4 }}>
-            <input type="checkbox" checked={recorrente} onChange={e => setRecorrente(e.target.checked)} />
-            Recorrente (semanal)
-          </label>
+          </Field>
         </div>
 
-        {erro && <p style={{ color: '#d9534f', fontSize: 13, marginBottom: 8 }}>{erro}</p>}
-        {sucesso && <p style={{ color: '#5cb85c', fontSize: 13, marginBottom: 8 }}>{sucesso}</p>}
+        <Checkbox
+          checked={recorrente}
+          onChange={setRecorrente}
+          label="Repetir semanalmente"
+          description="Reserva semestral no mesmo dia e horário."
+        />
 
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
-          <button onClick={onFechar} style={{ padding: '8px 16px', cursor: 'pointer' }}>Cancelar</button>
-          <button onClick={confirmar} style={{ padding: '8px 20px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
-            {precisaAprovacao ? 'Solicitar' : 'Confirmar'}
-          </button>
-        </div>
-      </div>
-    </div>
+        {motivoAprovacao && <Alert tone="warn" title="Requer aprovação">{motivoAprovacao}</Alert>}
+        {erro && <Alert tone="danger">{erro}</Alert>}
+      </form>}
+    </Modal>
   )
 }

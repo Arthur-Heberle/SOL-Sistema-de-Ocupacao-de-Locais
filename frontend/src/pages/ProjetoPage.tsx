@@ -1,143 +1,111 @@
-import { useParams, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import { projetoService } from '../services/projetoService'
 import { reservaService } from '../services/reservaService'
 import { salaService } from '../services/salaService'
 import { useAuth } from '../context/AuthContext'
+import { CATEGORIA_LABEL } from '../utils/rotulos'
 import HorariosLivresComponent from '../components/HorariosLivresComponent'
 import MembrosListComponent from '../components/MembrosListComponent'
 import CalendarioComponent from '../components/CalendarioComponent'
 import ModalReservaComponent from '../components/ModalReservaComponent'
+import PageHeader from '../components/ui/PageHeader'
+import Card from '../components/ui/Card'
+import Badge from '../components/ui/Badge'
+import Button from '../components/ui/Button'
+import Alert from '../components/ui/Alert'
+import EmptyState from '../components/ui/EmptyState'
+import styles from './ProjetoPage.module.css'
 
 export default function ProjetoPage() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const { tipoUsuario, idUsuario } = useAuth()
   const idNum = Number(id)
+  const projeto = projetoService.buscarPorId(idNum)
 
-  const projetoInicial = projetoService.buscarPorId(idNum)
-  const [aprovado, setAprovado] = useState(projetoInicial?.aprovado ?? false)
+  const [aprovado, setAprovado] = useState(projeto?.aprovado ?? false)
   const [modalAberto, setModalAberto] = useState(false)
+  const [versao, setVersao] = useState(0)
 
-  const membros = projetoInicial ? projetoService.membros(idNum) : []
-  const isMembroOuGestor = tipoUsuario === 'GESTOR' ||
-    (idUsuario !== null && membros.some(m => m.idUsuario === idUsuario))
-
-  const sala = projetoInicial?.idSalaExclusiva
-    ? salaService.buscarPorId(projetoInicial.idSalaExclusiva) ?? null
-    : null
-
-  const getReservasDaSala = () => sala
-    ? reservaService.reservasDaSala(sala.id).filter(r =>
-        isMembroOuGestor || r.visibilidade === 'PUBLICA'
-      )
-    : []
-
-  const [reservasDaSala, setReservasDaSala] = useState(getReservasDaSala)
-
-  if (!projetoInicial) {
+  if (!projeto) {
     return (
-      <main>
-        <p style={{ color: '#d9534f' }}>Projeto não encontrado.</p>
-        <button onClick={() => navigate('/projetos')} style={{ marginTop: 12, cursor: 'pointer', padding: '6px 14px' }}>
-          ← Voltar aos Projetos
-        </button>
-      </main>
+      <EmptyState title="Projeto não encontrado">
+        <Link to="/projetos">Voltar para Projetos</Link>
+      </EmptyState>
     )
   }
 
-  const handleAprovar = () => {
+  const isGestor = tipoUsuario === 'GESTOR'
+  const membros = projetoService.membros(idNum)
+  const isMembroOuGestor = isGestor || (idUsuario !== null && membros.some(m => m.idUsuario === idUsuario))
+  const sala = projeto.idSalaExclusiva ? salaService.buscarPorId(projeto.idSalaExclusiva) ?? null : null
+
+  void versao // re-read reservations after creating one
+  const reservasDaSala = sala
+    ? reservaService.reservasDaSala(sala.id).filter(r => isMembroOuGestor || r.visibilidade === 'PUBLICA')
+    : []
+
+  const aprovar = () => {
     projetoService.aprovar(idNum)
     setAprovado(true)
   }
 
   return (
-    <main>
-      <button onClick={() => navigate('/projetos')} style={{ marginBottom: 16, cursor: 'pointer', padding: '4px 12px', fontSize: 12 }}>
-        ← Projetos
-      </button>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-        <h1 style={{ margin: 0 }}>{projetoInicial.nome}</h1>
-        {tipoUsuario === 'GESTOR' && !aprovado && (
-          <button
-            onClick={handleAprovar}
-            style={{ background: '#5cb85c', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 18px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}
+    <>
+      <PageHeader
+        eyebrow={<Link to="/projetos" className={styles.voltar}>Projetos</Link>}
+        title={
+          <span className={styles.titulo}>
+            {projeto.nome}
+            <Badge tone="accent">{CATEGORIA_LABEL[projeto.categoria]}</Badge>
+            {aprovado ? <Badge tone="ok" dot>Aprovado</Badge> : <Badge tone="warn" dot>Aguardando aprovação</Badge>}
+          </span>
+        }
+        subtitle={projeto.descricao}
+        actions={isGestor && !aprovado && <Button variant="success" onClick={aprovar}>Aprovar projeto</Button>}
+      />
+
+      <div className={styles.stack}>
+        {!aprovado && (
+          <Alert tone="warn">
+            Este projeto aguarda aprovação do Gestor de Salas. A sala exclusiva e o agendamento de atividades ficam
+            disponíveis após a aprovação.
+          </Alert>
+        )}
+
+        <Card
+          title="Disponibilidade dos integrantes"
+          subtitle="Marque seus horários livres e encontre o melhor momento para reunir o grupo."
+        >
+          {isMembroOuGestor ? (
+            <HorariosLivresComponent idProjeto={projeto.id} />
+          ) : (
+            <p className={styles.muted}>Apenas integrantes e o Gestor podem visualizar e editar os horários livres.</p>
+          )}
+        </Card>
+
+        {sala && aprovado && (
+          <Card
+            title={`Sala exclusiva ${sala.codigoNome}`}
+            subtitle={`${sala.capacidade} lugares${sala.possuiProjetor ? ', com projetor' : ''}${isMembroOuGestor ? '' : '. Exibindo apenas atividades públicas.'}`}
+            actions={isMembroOuGestor && <Button onClick={() => setModalAberto(true)}>Agendar atividade</Button>}
           >
-            Aprovar Projeto
-          </button>
+            <CalendarioComponent reservas={reservasDaSala} salas={[sala]} />
+          </Card>
         )}
+
+        <Card title="Integrantes" subtitle={`${membros.length} ${membros.length === 1 ? 'pessoa' : 'pessoas'}`}>
+          <MembrosListComponent idProjeto={projeto.id} />
+        </Card>
       </div>
-      <p style={{ color: '#666', marginBottom: 4 }}>Categoria: {projetoInicial.categoria}</p>
-      <p style={{ marginBottom: 20, color: '#555' }}>{projetoInicial.descricao}</p>
-      {!aprovado ? (
-        <div style={{ background: '#fff3cd', border: '1px solid #f0ad4e', padding: 12, borderRadius: 6, marginBottom: 20, fontSize: 13 }}>
-          ⏳ Este projeto está aguardando aprovação do Gestor de Salas.
-        </div>
-      ) : (
-        <div style={{ background: '#d4edda', border: '1px solid #c3e6cb', padding: 12, borderRadius: 6, marginBottom: 20, fontSize: 13 }}>
-          ✓ Projeto aprovado.
-        </div>
+
+      {sala && modalAberto && (
+        <ModalReservaComponent
+          sala={sala}
+          onFechar={() => setModalAberto(false)}
+          onCriada={() => setVersao(v => v + 1)}
+        />
       )}
-
-      <section style={{ marginBottom: 28 }}>
-        <h2 style={{ marginBottom: 12 }}>Membros</h2>
-        <MembrosListComponent idProjeto={projetoInicial.id} />
-      </section>
-
-      {sala && aprovado && (
-        <section style={{ marginBottom: 28 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h2 style={{ margin: 0 }}>
-              Sala Exclusiva — {sala.codigoNome}
-              <span style={{ fontWeight: 400, fontSize: 13, color: '#666', marginLeft: 8 }}>
-                Cap. {sala.capacidade}{sala.possuiProjetor ? ' · Projetor' : ''}
-              </span>
-            </h2>
-            {isMembroOuGestor && (
-              <button
-                onClick={() => setModalAberto(true)}
-                style={{ padding: '6px 14px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}
-              >
-                + Agendar Atividade
-              </button>
-            )}
-          </div>
-          {!isMembroOuGestor && (
-            <p style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>
-              Exibindo apenas atividades públicas.
-            </p>
-          )}
-          <CalendarioComponent reservas={reservasDaSala} salas={[sala]} />
-          {modalAberto && (
-            <ModalReservaComponent
-              sala={sala}
-              aberto={modalAberto}
-              onFechar={() => setModalAberto(false)}
-              onCriada={() => {
-                setReservasDaSala(getReservasDaSala())
-                setModalAberto(false)
-              }}
-            />
-          )}
-        </section>
-      )}
-
-      {sala && !aprovado && isMembroOuGestor && (
-        <div style={{ background: '#f8f9fa', border: '1px solid #dee2e6', padding: 12, borderRadius: 6, marginBottom: 28, fontSize: 13, color: '#6c757d' }}>
-          A sala exclusiva e o agendamento de atividades ficam disponíveis após aprovação do projeto.
-        </div>
-      )}
-
-      <section style={{ marginBottom: 28 }}>
-        <h2 style={{ marginBottom: 12 }}>Horários Livres dos Integrantes</h2>
-        {isMembroOuGestor ? (
-          <HorariosLivresComponent idProjeto={projetoInicial.id} />
-        ) : (
-          <p style={{ fontSize: 13, color: '#888' }}>
-            Apenas integrantes e o Gestor podem visualizar e editar os horários livres.
-          </p>
-        )}
-      </section>
-    </main>
+    </>
   )
 }

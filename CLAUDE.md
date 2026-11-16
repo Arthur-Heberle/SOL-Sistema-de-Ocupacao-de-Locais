@@ -7,8 +7,8 @@ Replaces manual email/in-person room booking with a self-service web platform.
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18 + TypeScript + Vite (`project/frontend/`) |
-| Backend | Java 17 + Spring Boot 3 (`project/backend/` — future) |
+| Frontend | React 19 + TypeScript + Vite (`frontend/`) |
+| Backend | Java 17 + Spring Boot 3 (`backend/` — future) |
 | Database | PostgreSQL — minimum 5 tables |
 | Auth | JWT tokens stored in browser localStorage |
 | VCS | Git / GitHub |
@@ -30,7 +30,8 @@ Replaces manual email/in-person room booking with a self-service web platform.
 | `LoginPage` | `/login` | public |
 | `MapaPage` | `/mapa` | `ALUNO` |
 | `DashboardPage` | `/dashboard` | `PROFESSOR` |
-| `ProjetoPage` | `/projetos/:id` | `TUTOR` |
+| `ProjetosListPage` | `/projetos` | `ALUNO` (project members) |
+| `ProjetoPage` | `/projetos/:id` | `ALUNO` (members see full view) |
 | `GestaoUsuariosPage` | `/admin/usuarios` | `GESTOR` |
 | `GestaoSalasPage` | `/admin/salas` | `GESTOR` |
 | `GestaoDisciplinasPage` | `/admin/disciplinas` | `GESTOR` |
@@ -60,10 +61,21 @@ Replaces manual email/in-person room booking with a self-service web platform.
 
 - Component files: `PascalCase.tsx`
 - Pages in `src/pages/`, components in `src/components/`
-- Routes in `src/routes/`, context in `src/context/`, types in `src/types/`
-- CSS Modules: `ComponentName.module.css` (no global CSS except `index.css` reset)
+- Shared UI primitives in `src/components/ui/` (Button, Badge, Alert, Card, Field, Checkbox, Modal, PageHeader, Table, EmptyState)
+- Routes in `src/routes/`, context in `src/context/`, types in `src/types/`, helpers in `src/utils/`
+- CSS Modules: `ComponentName.module.css`; `index.css` holds only the reset and design tokens (CSS variables)
+- No inline `style={{}}` except computed positioning
 - No barrel `index.ts` files unless 3+ exports from one folder
-- All API calls go through service classes in `src/services/` (future)
+- All data access goes through `src/services/` (currently `mockDB.ts` over localStorage, key prefix `sol.v2.`)
+- Dates: use `src/utils/datas.ts` (local time; never `toISOString()` for calendar dates)
+- No emojis in UI or docs; no AI `Co-Authored-By` lines in commits
+
+## Repository Layout
+
+- `frontend/` — application
+- `docs/especificacao/` — project plan (requirements, use cases, data dictionary)
+- `docs/diagramas/` — UML diagrams in Mermaid
+- `docs/img/` — README screenshots
 
 ## API Endpoints (planned — backend not built yet)
 

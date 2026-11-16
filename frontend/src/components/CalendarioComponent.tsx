@@ -1,4 +1,9 @@
 import type { ReservaDTO, SalaDTO } from '../types'
+import { useAuth } from '../context/AuthContext'
+import { ocorreEm } from '../services/reservaService'
+import { formatDiaMes, formatHora, hojeISO, segundaDaSemana, toISODate } from '../utils/datas'
+import { DIAS_SEMANA_CURTO, HORAS_GRADE } from '../utils/rotulos'
+import styles from './CalendarioComponent.module.css'
 
 interface Props {
   reservas: ReservaDTO[]
@@ -6,99 +11,68 @@ interface Props {
   dataFoco?: string
 }
 
-const HORAS = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00']
-const DIAS_LABEL = ['Seg','Ter','Qua','Qui','Sex']
-
-function getMondayOfWeek(dateStr: string): Date {
-  const d = new Date(dateStr + 'T12:00')
-  const dow = d.getDay()
-  const diff = dow === 0 ? -6 : 1 - dow
-  d.setDate(d.getDate() + diff)
-  return d
-}
-
-function toDateStr(d: Date): string {
-  return d.toISOString().split('T')[0]
-}
-
-function fmt(d: Date): string {
-  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`
-}
-
+/** Weekly grid (Mon-Fri, 08h-17h) of approved reservations. */
 export default function CalendarioComponent({ reservas, salas, dataFoco }: Props) {
-  const getSala = (id: number) => salas.find(s => s.id === id)
-
-  const today = new Date().toISOString().split('T')[0]
-  const ref = dataFoco ?? today
-  const monday = getMondayOfWeek(ref)
-  const weekDates = Array.from({ length: 5 }, (_, i) => {
-    const d = new Date(monday)
+  const { idUsuario, tipoUsuario } = useAuth()
+  const ref = dataFoco ?? hojeISO()
+  const hoje = hojeISO()
+  const segunda = segundaDaSemana(ref)
+  const dias = Array.from({ length: 5 }, (_, i) => {
+    const d = new Date(segunda)
     d.setDate(d.getDate() + i)
     return d
   })
-  const weekDateStrs = weekDates.map(toDateStr)
-  const friday = weekDates[4]
-  const weekLabel = `${fmt(monday)} – ${fmt(friday)} / ${friday.getFullYear()}`
+  const diasISO = dias.map(toISODate)
+  const codigoSala = (id: number) => salas.find(s => s.id === id)?.codigoNome ?? `#${id}`
+  const visivel = (r: ReservaDTO) =>
+    r.visibilidade === 'PUBLICA' || r.idUsuario === idUsuario || tipoUsuario === 'GESTOR'
 
-  const getReservasNaHora = (colIdx: number, hora: string): ReservaDTO[] => {
-    const colDateStr = weekDateStrs[colIdx]
-    const colDow = new Date(colDateStr + 'T12:00').getDay()
-    return reservas.filter(r => {
-      const rDow = new Date(r.dataInicio).getDay()
-      const rDateStr = r.dataInicio.slice(0, 10)
-      const rHora = r.dataInicio.slice(11, 16)
-      if (rHora !== hora) return false
-      if (r.recorrente) return rDow === colDow
-      return rDateStr === colDateStr
-    })
-  }
+  const naHora = (diaISO: string, hora: string) =>
+    reservas.filter(r => formatHora(r.dataInicio).slice(0, 2) === hora.slice(0, 2) && ocorreEm(r, diaISO))
 
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <p style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>Semana: {weekLabel}</p>
-      <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>
-        <thead>
-          <tr style={{ background: '#1a1a2e', color: '#fff' }}>
-            <th style={{ padding: '6px 10px', textAlign: 'left', minWidth: 60 }}>Hora</th>
-            {weekDates.map((d, i) => {
-              const isRef = weekDateStrs[i] === ref
-              return (
+    <div className={styles.wrap}>
+      <p className={styles.semana}>
+        Semana de {formatDiaMes(dias[0])} a {formatDiaMes(dias[4])} de {dias[4].getFullYear()}
+      </p>
+      <div className={styles.scroll}>
+        <table className={styles.grade}>
+          <thead>
+            <tr>
+              <th scope="col" className={styles.horaCol}><span className="visually-hidden">Hora</span></th>
+              {dias.map((d, i) => (
                 <th
                   key={i}
-                  style={{ padding: '6px 12px', minWidth: 100, background: isRef ? '#2d2d5e' : undefined }}
+                  scope="col"
+                  className={`${diasISO[i] === ref ? styles.foco : ''} ${diasISO[i] === hoje ? styles.hoje : ''}`}
                 >
-                  {DIAS_LABEL[i]}<br />
-                  <span style={{ fontSize: 10, opacity: 0.8 }}>{fmt(d)}</span>
+                  <span className={styles.diaNome}>{DIAS_SEMANA_CURTO[i]}</span>
+                  <span className={styles.diaData}>{formatDiaMes(d)}</span>
                 </th>
-              )
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {HORAS.map(hora => (
-            <tr key={hora}>
-              <td style={{ border: '1px solid #ddd', padding: '4px 10px', fontWeight: 600, fontSize: 11, background: '#f8f8f8' }}>{hora}</td>
-              {weekDates.map((_, colIdx) => {
-                const isRef = weekDateStrs[colIdx] === ref
-                const ocupacoes = getReservasNaHora(colIdx, hora)
-                return (
-                  <td
-                    key={colIdx}
-                    style={{ border: '1px solid #ddd', padding: 4, verticalAlign: 'top', background: isRef ? '#f5f5ff' : undefined }}
-                  >
-                    {ocupacoes.map(r => (
-                      <div key={r.id} style={{ background: '#1a1a2e', color: '#fff', borderRadius: 3, padding: '2px 6px', fontSize: 10, marginBottom: 2 }}>
-                        {r.titulo}<br />
-                        <span style={{ opacity: 0.7 }}>{getSala(r.idSala)?.codigoNome}</span>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {HORAS_GRADE.map(hora => (
+              <tr key={hora}>
+                <th scope="row" className={styles.horaCol}>{hora}</th>
+                {diasISO.map(dia => (
+                  <td key={dia} className={dia === ref ? styles.foco : undefined}>
+                    {naHora(dia, hora).map(r => (
+                      <div key={r.id} className={`${styles.evento} ${visivel(r) ? '' : styles.privado}`}>
+                        <span className={styles.eventoTitulo}>{visivel(r) ? r.titulo : 'Atividade privada'}</span>
+                        <span className={styles.eventoMeta}>
+                          {codigoSala(r.idSala)} · {formatHora(r.dataInicio)}–{formatHora(r.dataFim)}
+                        </span>
                       </div>
                     ))}
                   </td>
-                )
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

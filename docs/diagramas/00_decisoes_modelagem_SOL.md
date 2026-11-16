@@ -2,7 +2,7 @@
 
 Arquivos gerados para complementar a documentação do projeto **S.O.L. — Sistema de Ocupação de Locais**.
 
-Critério adotado: os diagramas foram baseados nos casos de uso, dicionário de classes e regras descritas no arquivo `PlanodoProjeto (1).md`. Para os diagramas de estados e atividades, foi seguido o padrão do grupo de referência: selecionar classes diretamente envolvidas em cada UC e detalhar o estado/atividade principal relacionado ao fluxo do caso de uso.
+Critério adotado: os diagramas foram baseados nos casos de uso, dicionário de classes e regras descritas no arquivo [Plano do Projeto](../especificacao/plano-do-projeto.md). Para os diagramas de estados e atividades, foi seguido o padrão do grupo de referência: selecionar classes diretamente envolvidas em cada UC e detalhar o estado/atividade principal relacionado ao fluxo do caso de uso.
 
 
 ## Decisões de modelagem

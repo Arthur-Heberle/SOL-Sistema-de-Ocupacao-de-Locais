@@ -1,1 +1,99 @@
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* Global reset + design tokens. Component styles live in *.module.css files. */
+
+:root {
+  --font-sans: 'IBM Plex Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Surfaces */
+  --bg: #f5f4ef;
+  --surface: #ffffff;
+  --surface-2: #f0eee7;
+  --surface-3: #e7e4db;
+  --line: #e2dfd5;
+  --line-strong: #cbc7ba;
+
+  /* Text */
+  --ink: #1a1c21;
+  --ink-2: #4a4e57;
+  --ink-3: #7a7e87;
+
+  /* Brand */
+  --brand: #1a1c21;
+  --brand-hover: #33363e;
+  --accent: #f2b705;
+  --accent-soft: #fdf3cf;
+  --accent-ink: #6b5000;
+
+  /* Status */
+  --ok: #1d7a4c;
+  --ok-soft: #e2f2e9;
+  --warn: #9a5b00;
+  --warn-soft: #fcefd6;
+  --danger: #b42318;
+  --danger-soft: #fbe5e3;
+  --info: #2556a8;
+  --info-soft: #e4ecfa;
+
+  /* Shape */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgb(26 28 33 / 0.06);
+  --shadow: 0 1px 2px rgb(26 28 33 / 0.05), 0 4px 16px rgb(26 28 33 / 0.06);
+  --shadow-lg: 0 12px 40px rgb(26 28 33 / 0.18);
+
+  --focus-ring: 0 0 0 3px rgb(242 183 5 / 0.45);
+
+  color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; letter-spacing: -0.01em; }
+
+a { color: inherit; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+button { cursor: pointer; }
+
+input:not([type='checkbox']):not([type='radio']),
+select,
+textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+}
+
+input[type='checkbox'] { accent-color: var(--brand); width: 16px; height: 16px; }
+
+textarea { resize: vertical; }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+table { border-collapse: collapse; width: 100%; }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}

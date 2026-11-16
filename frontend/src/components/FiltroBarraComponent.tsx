@@ -1,42 +1,72 @@
 import { useState } from 'react'
-import type { FiltroMapaDTO } from '../types'
+import type { FormEvent } from 'react'
+import type { FiltroMapaDTO, TipoSala } from '../types'
 import { salaService } from '../services/salaService'
+import { hojeISO } from '../utils/datas'
+import { TIPO_SALA_LABEL } from '../utils/rotulos'
+import Button from './ui/Button'
+import Field from './ui/Field'
+import Checkbox from './ui/Checkbox'
+import styles from './FiltroBarraComponent.module.css'
 
 interface Props {
+  filtro: FiltroMapaDTO
   onFiltroChange: (filtro: FiltroMapaDTO) => void
 }
 
-export default function FiltroBarraComponent({ onFiltroChange }: Props) {
-  const blocos = salaService.blocos()
-  const [bloco, setBloco] = useState('')
-  const [dataFoco, setDataFoco] = useState(new Date().toISOString().split('T')[0])
+const FILTRO_PADRAO = (): FiltroMapaDTO => ({ dataFoco: hojeISO() })
 
-  const aplicar = () => onFiltroChange({ bloco: bloco || undefined, dataFoco })
+export default function FiltroBarraComponent({ filtro, onFiltroChange }: Props) {
+  const blocos = salaService.blocos()
+  const [rascunho, setRascunho] = useState<FiltroMapaDTO>(filtro)
+  const set = (patch: Partial<FiltroMapaDTO>) => setRascunho(prev => ({ ...prev, ...patch }))
+
+  const aplicar = (e: FormEvent) => {
+    e.preventDefault()
+    onFiltroChange(rascunho)
+  }
+
   const limpar = () => {
-    setBloco('')
-    setDataFoco(new Date().toISOString().split('T')[0])
-    onFiltroChange({})
+    const padrao = FILTRO_PADRAO()
+    setRascunho(padrao)
+    onFiltroChange(padrao)
   }
 
   return (
-    <div style={{ background: '#f5f5f5', padding: 12, borderRadius: 6, marginBottom: 16, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-      <label style={{ fontSize: 13 }}>
-        Bloco<br />
-        <select value={bloco} onChange={e => setBloco(e.target.value)} style={{ padding: '6px 8px', minWidth: 120 }}>
-          <option value="">Todos</option>
-          {blocos.map(b => <option key={b} value={b}>{b}</option>)}
+    <form className={styles.bar} onSubmit={aplicar} aria-label="Filtros do mapa">
+      <Field label="Data">
+        <input type="date" value={rascunho.dataFoco ?? ''} onChange={e => set({ dataFoco: e.target.value || undefined })} />
+      </Field>
+      <Field label="Bloco">
+        <select value={rascunho.bloco ?? ''} onChange={e => set({ bloco: e.target.value || undefined })}>
+          <option value="">Todos os blocos</option>
+          {blocos.map(b => <option key={b} value={b}>Bloco {b}</option>)}
         </select>
-      </label>
-      <label style={{ fontSize: 13 }}>
-        Data<br />
-        <input type="date" value={dataFoco} onChange={e => setDataFoco(e.target.value)} style={{ padding: '6px 8px' }} />
-      </label>
-      <button onClick={aplicar} style={{ padding: '6px 16px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
-        Filtrar
-      </button>
-      <button onClick={limpar} style={{ padding: '6px 12px', cursor: 'pointer' }}>
-        Limpar
-      </button>
-    </div>
+      </Field>
+      <Field label="Tipo de sala">
+        <select value={rascunho.tipoSala ?? ''} onChange={e => set({ tipoSala: (e.target.value || undefined) as TipoSala | undefined })}>
+          <option value="">Todos os tipos</option>
+          {(Object.keys(TIPO_SALA_LABEL) as TipoSala[]).map(t => <option key={t} value={t}>{TIPO_SALA_LABEL[t]}</option>)}
+        </select>
+      </Field>
+      <Field label="Capacidade mínima">
+        <input
+          type="number"
+          min={1}
+          inputMode="numeric"
+          placeholder="Qualquer"
+          value={rascunho.capacidadeMin ?? ''}
+          onChange={e => set({ capacidadeMin: e.target.value ? Number(e.target.value) : undefined })}
+        />
+      </Field>
+      <div className={styles.checks}>
+        <Checkbox checked={!!rascunho.comProjetor} onChange={v => set({ comProjetor: v || undefined })} label="Com projetor" />
+        <Checkbox checked={!!rascunho.apenasLivres} onChange={v => set({ apenasLivres: v || undefined })} label="Apenas livres" />
+      </div>
+      <div className={styles.actions}>
+        <Button type="button" variant="ghost" onClick={limpar}>Limpar</Button>
+        <Button type="submit">Aplicar filtros</Button>
+      </div>
+    </form>
   )
 }

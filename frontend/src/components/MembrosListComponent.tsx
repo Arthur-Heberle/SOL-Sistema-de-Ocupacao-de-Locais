@@ -3,14 +3,20 @@ import type { MembroProjetoDTO } from '../types'
 import { projetoService } from '../services/projetoService'
 import { usuarioService } from '../services/usuarioService'
 import { useAuth } from '../context/AuthContext'
+import Alert from './ui/Alert'
+import Badge from './ui/Badge'
+import Button from './ui/Button'
+import Field from './ui/Field'
+import Table from './ui/Table'
+import styles from './MembrosListComponent.module.css'
 
 interface Props {
   idProjeto: number
 }
 
 export default function MembrosListComponent({ idProjeto }: Props) {
-  const { nome, tipoUsuario } = useAuth()
-  const usuarioLogado = usuarioService.listar().find(u => u.nome === nome)
+  const { idUsuario, tipoUsuario } = useAuth()
+  const usuarioLogado = usuarioService.listar().find(u => u.id === idUsuario)
   const membroLogado = projetoService.membros(idProjeto).find(m => m.idUsuario === usuarioLogado?.id)
   const podeGerenciar = tipoUsuario === 'GESTOR' || membroLogado?.isGestor
 
@@ -34,49 +40,42 @@ export default function MembrosListComponent({ idProjeto }: Props) {
   }
 
   return (
-    <div>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginBottom: 16 }}>
+    <div className={styles.wrap}>
+      <Table caption="Membros do projeto">
         <thead>
-          <tr style={{ background: '#f5f5f5' }}>
-            <th style={{ border: '1px solid #ddd', padding: '8px 12px', textAlign: 'left' }}>Nome</th>
-            <th style={{ border: '1px solid #ddd', padding: '8px 12px', textAlign: 'left' }}>E-mail</th>
-            <th style={{ border: '1px solid #ddd', padding: '8px 12px' }}>Papel</th>
-            {podeGerenciar && <th style={{ border: '1px solid #ddd', padding: '8px 12px' }}>Ações</th>}
+          <tr>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th data-align="center">Papel</th>
+            {podeGerenciar && <th data-align="center">Ações</th>}
           </tr>
         </thead>
         <tbody>
           {membros.map(m => (
             <tr key={m.id}>
-              <td style={{ border: '1px solid #ddd', padding: '8px 12px' }}>{m.nomeUsuario}</td>
-              <td style={{ border: '1px solid #ddd', padding: '8px 12px' }}>{m.emailUsuario}</td>
-              <td style={{ border: '1px solid #ddd', padding: '8px 12px', textAlign: 'center' }}>
-                {m.isGestor ? 'Gestor' : 'Membro'}
+              <td>{m.nomeUsuario}</td>
+              <td>{m.emailUsuario}</td>
+              <td data-align="center">
+                <Badge tone={m.isGestor ? 'accent' : 'neutral'}>{m.isGestor ? 'Gestor' : 'Membro'}</Badge>
               </td>
               {podeGerenciar && (
-                <td style={{ border: '1px solid #ddd', padding: '8px 12px', textAlign: 'center' }}>
-                  {!m.isGestor && (
-                    <button onClick={() => remover(m.id)} style={{ background: '#d9534f', color: '#fff', border: 'none', padding: '3px 10px', borderRadius: 3, cursor: 'pointer', fontSize: 12 }}>
-                      Remover
-                    </button>
-                  )}
+                <td data-align="center">
+                  {!m.isGestor && <Button size="sm" variant="danger" onClick={() => remover(m.id)}>Remover</Button>}
                 </td>
               )}
             </tr>
           ))}
         </tbody>
-      </table>
+      </Table>
       {podeGerenciar && (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-          <label style={{ fontSize: 13 }}>
-            Adicionar por e-mail<br />
-            <input value={novoEmail} onChange={e => setNovoEmail(e.target.value)} placeholder="usuario@utfpr.edu.br" style={{ padding: '6px 8px', width: 260 }} />
-          </label>
-          <button onClick={adicionar} style={{ padding: '6px 14px', background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
-            Adicionar
-          </button>
-          {erro && <span style={{ color: '#d9534f', fontSize: 12 }}>{erro}</span>}
+        <div className={styles.add}>
+          <Field label="Adicionar por e-mail" className={styles.addField}>
+            <input value={novoEmail} onChange={e => setNovoEmail(e.target.value)} placeholder="usuario@utfpr.edu.br" />
+          </Field>
+          <Button onClick={adicionar}>Adicionar</Button>
         </div>
       )}
+      {erro && <Alert tone="danger">{erro}</Alert>}
     </div>
   )
 }

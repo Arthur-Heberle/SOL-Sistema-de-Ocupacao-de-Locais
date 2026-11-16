@@ -1,0 +1,14 @@
+.alert {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid currentColor;
+  font-size: 13.5px;
+}
+.alert > div { color: var(--ink); }
+.title { display: block; margin-bottom: 2px; font-weight: 600; }
+
+.info { background: var(--info-soft); color: var(--info); }
+.ok { background: var(--ok-soft); color: var(--ok); }
+.warn { background: var(--warn-soft); color: var(--warn); }
+.danger { background: var(--danger-soft); color: var(--danger); }
+.neutral { background: var(--surface-2); color: var(--ink-3); }

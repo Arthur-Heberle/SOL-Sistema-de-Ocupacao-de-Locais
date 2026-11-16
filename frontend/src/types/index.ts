@@ -48,6 +48,10 @@ export interface FiltroMapaDTO {
   bloco?: string
   dataFoco?: string
   idProjeto?: number
+  tipoSala?: TipoSala
+  capacidadeMin?: number
+  comProjetor?: boolean
+  apenasLivres?: boolean
 }
 
 export interface AuthTokenDTO {

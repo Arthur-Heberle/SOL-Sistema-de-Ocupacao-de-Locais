@@ -1,97 +1,102 @@
-import { useState, useEffect } from 'react'
-import type { SalaDTO, FiltroMapaDTO, ReservaDTO } from '../types'
-import { salaService } from '../services/salaService'
-import { reservaService } from '../services/reservaService'
+import type { SalaDTO, ReservaDTO } from '../types'
 import { useAuth } from '../context/AuthContext'
-import ModalReservaComponent from './ModalReservaComponent'
+import { formatHora } from '../utils/datas'
+import { TIPO_SALA_LABEL } from '../utils/rotulos'
+import Badge from './ui/Badge'
+import EmptyState from './ui/EmptyState'
+import TimelineDiaComponent from './TimelineDiaComponent'
+import styles from './MapaComponent.module.css'
 
-interface Props {
-  filtro: FiltroMapaDTO
+export interface SalaComOcupacao {
+  sala: SalaDTO
+  reservas: ReservaDTO[]
 }
 
-export default function MapaComponent({ filtro }: Props) {
-  const { tipoUsuario } = useAuth()
-  const [salas, setSalas] = useState<SalaDTO[]>([])
-  const [salaSelecionada, setSalaSelecionada] = useState<SalaDTO | null>(null)
-  const [reservas, setReservas] = useState<ReservaDTO[]>([])
+interface Props {
+  salas: SalaComOcupacao[]
+  onSelecionar: (sala: SalaDTO) => void
+}
 
-  const recarregar = () => {
-    setSalas(salaService.listar({ bloco: filtro.bloco }))
-    setReservas(reservaService.listar({ status: 'APROVADA' }))
+export default function MapaComponent({ salas, onSelecionar }: Props) {
+  const { tipoUsuario, idUsuario } = useAuth()
+  const podeReservar = tipoUsuario !== 'ALUNO'
+
+  if (salas.length === 0) {
+    return <EmptyState title="Nenhuma sala encontrada">Ajuste os filtros para ver mais resultados.</EmptyState>
   }
 
-  useEffect(recarregar, [filtro.bloco])
-
-  const ocupada = (sala: SalaDTO): boolean => {
-    const dataRef = filtro.dataFoco
-    return reservas.some(r => {
-      if (r.idSala !== sala.id) return false
-      if (!dataRef) return true
-      if (r.recorrente) {
-        return new Date(r.dataInicio).getDay() === new Date(dataRef + 'T12:00').getDay()
-      }
-      return r.dataInicio.startsWith(dataRef)
-    })
-  }
-
-  const corSala = (sala: SalaDTO): string => {
-    if (!sala.permiteReserva) return '#e0e0e0'
-    if (ocupada(sala)) return '#f5c6cb'
-    return '#c8f7c5'
-  }
-
-  const porBloco = salas.reduce<Record<string, SalaDTO[]>>((acc, s) => {
-    acc[s.bloco] = [...(acc[s.bloco] ?? []), s]
+  const porBloco = salas.reduce<Record<string, SalaComOcupacao[]>>((acc, item) => {
+    (acc[item.sala.bloco] ??= []).push(item)
     return acc
   }, {})
 
+  const tituloVisivel = (r: ReservaDTO) =>
+    r.visibilidade === 'PUBLICA' || r.idUsuario === idUsuario || tipoUsuario === 'GESTOR'
+      ? r.titulo
+      : 'Atividade privada'
+
   return (
-    <div>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 12, fontSize: 12 }}>
-        <span style={{ background: '#c8f7c5', padding: '2px 8px', borderRadius: 3 }}>Disponível</span>
-        <span style={{ background: '#f5c6cb', padding: '2px 8px', borderRadius: 3 }}>Ocupada</span>
-        <span style={{ background: '#e0e0e0', padding: '2px 8px', borderRadius: 3 }}>Somente visualização</span>
-      </div>
-      {Object.entries(porBloco).map(([bloco, rooms]) => (
-        <div key={bloco} style={{ marginBottom: 20 }}>
-          <h3 style={{ marginBottom: 8, fontSize: 14, color: '#444' }}>Bloco {bloco}</h3>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {rooms.map(sala => (
-              <div
-                key={sala.id}
-                onClick={() => sala.permiteReserva && tipoUsuario !== 'ALUNO' && setSalaSelecionada(sala)}
-                style={{
-                  background: corSala(sala),
-                  border: '1px solid #bbb',
-                  borderRadius: 6,
-                  padding: '12px 16px',
-                  minWidth: 130,
-                  cursor: sala.permiteReserva && tipoUsuario !== 'ALUNO' ? 'pointer' : 'default',
-                  userSelect: 'none',
-                }}
-              >
-                <div style={{ fontWeight: 700 }}>{sala.codigoNome}</div>
-                <div style={{ fontSize: 11, color: '#555' }}>{sala.tipoSala}</div>
-                <div style={{ fontSize: 11, color: '#555' }}>Cap: {sala.capacidade}</div>
-                {sala.possuiProjetor && <div style={{ fontSize: 10, color: '#888' }}>Projetor</div>}
-                {!sala.permiteReserva && <div style={{ fontSize: 10, color: '#999', marginTop: 4 }}>Somente visualização</div>}
-                {tipoUsuario === 'ALUNO' && sala.permiteReserva && (
-                  <div style={{ fontSize: 10, color: '#888', marginTop: 4 }}>Somente visualização</div>
-                )}
-                {ocupada(sala) && sala.permiteReserva && <div style={{ fontSize: 10, color: '#c00', marginTop: 4 }}>Ocupada</div>}
-              </div>
-            ))}
-          </div>
-        </div>
+    <div className={styles.blocos}>
+      {Object.entries(porBloco).map(([bloco, itens]) => (
+        <section key={bloco} aria-labelledby={`bloco-${bloco}`}>
+          <h2 id={`bloco-${bloco}`} className={styles.blocoTitulo}>
+            Bloco {bloco}
+            <span>{itens.length} {itens.length === 1 ? 'sala' : 'salas'}</span>
+          </h2>
+          <ul className={styles.grid}>
+            {itens.map(({ sala, reservas }) => {
+              const bloqueada = !sala.permiteReserva
+              const clicavel = !bloqueada && podeReservar
+              const estado = bloqueada ? 'bloqueada' : reservas.length > 0 ? 'parcial' : 'livre'
+              const conteudo = (
+                <>
+                  <div className={styles.head}>
+                    <span className={styles.codigo}>{sala.codigoNome}</span>
+                    {estado === 'bloqueada' && <Badge tone="neutral">Somente consulta</Badge>}
+                    {estado === 'livre' && <Badge tone="ok" dot>Livre</Badge>}
+                    {estado === 'parcial' && (
+                      <Badge tone="danger" dot>{reservas.length} {reservas.length === 1 ? 'reserva' : 'reservas'}</Badge>
+                    )}
+                  </div>
+                  <div className={styles.meta}>
+                    <span>{TIPO_SALA_LABEL[sala.tipoSala]}</span>
+                    <span>{sala.capacidade} lugares</span>
+                    {sala.possuiProjetor && <span>Projetor</span>}
+                  </div>
+                  {!bloqueada && (
+                    <>
+                      <TimelineDiaComponent reservas={reservas} />
+                      <ul className={styles.agenda}>
+                        {reservas.slice(0, 2).map(r => (
+                          <li key={r.id}>
+                            <span className={styles.hora}>{formatHora(r.dataInicio)}–{formatHora(r.dataFim)}</span>
+                            <span className={styles.atividade}>{tituloVisivel(r)}</span>
+                          </li>
+                        ))}
+                        {reservas.length > 2 && <li className={styles.mais}>+{reservas.length - 2} outras</li>}
+                        {reservas.length === 0 && <li className={styles.vazio}>Sem reservas neste dia</li>}
+                      </ul>
+                    </>
+                  )}
+                  {bloqueada && <p className={styles.nota}>Sala administrativa, não disponível para reserva.</p>}
+                  {clicavel && <span className={styles.cta}>Reservar</span>}
+                </>
+              )
+              return (
+                <li key={sala.id}>
+                  {clicavel ? (
+                    <button type="button" className={`${styles.card} ${styles[estado]} ${styles.clicavel}`} onClick={() => onSelecionar(sala)}>
+                      {conteudo}
+                    </button>
+                  ) : (
+                    <div className={`${styles.card} ${styles[estado]}`}>{conteudo}</div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </section>
       ))}
-      {salaSelecionada && (
-        <ModalReservaComponent
-          sala={salaSelecionada}
-          aberto={true}
-          onFechar={() => setSalaSelecionada(null)}
-          onCriada={() => { recarregar(); setSalaSelecionada(null) }}
-        />
-      )}
     </div>
   )
 }
